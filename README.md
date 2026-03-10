@@ -41,6 +41,6 @@ My 3D Engine built with OpenGL, providing graphics rendering with raytracing and
 ![Editor Showcase](https://github.com/ldevillard/Devil-Engine/blob/main/Thumbnails/editor-showcase.gif)
 ![Refraction](https://github.com/ldevillard/Engine/blob/main/Thumbnails/Screenshot%202025-03-21%20154211.png)
 ![Raytraced Screen](https://github.com/ldevillard/Engine/blob/main/Thumbnails/Screenshot%202024-07-01%20205025.png)
-![Video](https://github.com/ldevillard/Devil-Engine/blob/main/Thumbnails/demo-plane.gif)
+![BVH Showcase](https://github.com/ldevillard/Devil-Engine/blob/main/Thumbnails/bvh-showcase.gif)
 ![Editor Plane](https://github.com/ldevillard/Devil-Engine/blob/main/Thumbnails/Screenshot%202026-03-10%20at%2013.01.20.png)
 ![Editor Screen](https://github.com/ldevillard/Engine/blob/main/Thumbnails/Screenshot%202024-03-29%20185441.png)
