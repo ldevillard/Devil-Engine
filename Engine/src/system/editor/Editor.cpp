@@ -510,26 +510,71 @@ void Editor::renderTopBar()
 void Editor::renderScene(unsigned int width, unsigned int height)
 {
 	ImGui::Begin("Scene", nullptr);
-	{
-		ImGui::BeginChild("GameRender");
 
-		float width = ImGui::GetContentRegionAvail().x;
-		float height = ImGui::GetContentRegionAvail().y;
+	ImGui::BeginChild("GameRender");
 
-		SCENE_WIDTH = static_cast<unsigned int>(width);
-		SCENE_HEIGHT = static_cast<unsigned int>(height);
-		ImGui::Image(
-			reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(GetSceneBuffer()->GetFrameTexture())),
-			ImGui::GetContentRegionAvail(),
-			ImVec2(0, 1),
-			ImVec2(1, 0)
-		);
-		processInputs();
-	}
+	ImVec2 availSize = ImGui::GetContentRegionAvail();
+	SCENE_WIDTH = static_cast<unsigned int>(availSize.x);
+	SCENE_HEIGHT = static_cast<unsigned int>(availSize.y);
+
+	ImGui::Image(
+		reinterpret_cast<ImTextureID>(static_cast<uintptr_t>(GetSceneBuffer()->GetFrameTexture())),
+		availSize,
+		ImVec2(0, 1),
+		ImVec2(1, 0)
+	);
+
+	renderToolbar();
+
+	processInputs();
+
 	if (selectedEntity != nullptr)
 		transformGizmo(width, height);
+
 	ImGui::EndChild();
 	ImGui::End();
+}
+
+void Editor::renderToolbar()
+{
+	// toolbar positioned at the top left corner of the scene window
+	ImGui::SetCursorPos(ImVec2(5.0f, 5.0f));
+	// color setup
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 0.7f));
+	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+
+	ImGui::BeginChild("ToolbarOverlay", ImVec2(60.0f, 40.0f), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysUseWindowPadding);
+
+	renderPlayButton();
+
+	ImGui::EndChild();
+
+	ImGui::PopStyleVar(2);
+	ImGui::PopStyleColor();
+}
+
+void Editor::renderPlayButton()
+{
+	if (parameters.isPlaying)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.3f, 0.3f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+	}
+	else
+	{
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.8f, 0.3f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.9f, 0.4f, 1.0f));
+	}
+
+	if (ImGui::Button(parameters.isPlaying ? "STOP" : "PLAY", ImVec2(50, 30)))
+	{
+		parameters.isPlaying = !parameters.isPlaying;
+	}
+
+	ImGui::PopStyleColor(3);
 }
 
 void Editor::renderShadowMap()
@@ -628,6 +673,7 @@ void Editor::renderSettings()
 	ImGui::Text("FPS: %.1f", Time::FrameRate());
 	ImGui::Text("Frame time : %.1f ms", Time::DeltaTime * 1000);
 	ImGui::Text("Triangles: %d", parameters.TrianglesNumber);
+	
 	ImGui::Separator();
 	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Gizmos"))
@@ -661,22 +707,25 @@ void Editor::renderSettings()
 
 		ImGui::TreePop();
 	}
-	ImGui::NewLine();
 	ImGui::Separator();
-	ImGui_Utils::DrawBoolControl("Wireframe", parameters.Wireframe, 100.f);
-	ImGui_Utils::DrawBoolControl("ShadowMap", parameters.ShadowMap, 100.f);
-	ImGui_Utils::DrawBoolControl("OrbitMode", parameters.OrbitMode, 100.f);
-	ImGui_Utils::DrawFloatControl("Camera Speed", editorCamera->MovementSpeed, 5.f, 100.f);
-	if (ImGui_Utils::DrawButtonControl("Light View", "APPLY", 100.0f))
-		setCameraToLightView();
 
+	if (ImGui::TreeNode("Settings and Actions"))
+	{
+		ImGui_Utils::DrawBoolControl("Wireframe", parameters.Wireframe, 100.f);
+		ImGui_Utils::DrawBoolControl("ShadowMap", parameters.ShadowMap, 100.f);
+		ImGui_Utils::DrawBoolControl("OrbitMode", parameters.OrbitMode, 100.f);
+		ImGui_Utils::DrawFloatControl("Camera Speed", editorCamera->MovementSpeed, 5.f, 100.f);
+		if (ImGui_Utils::DrawButtonControl("Light View", "APPLY", 100.0f))
+			setCameraToLightView();
+		ImGui::TreePop();
+	}
 	ImGui::Separator();
+
 	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("RayTracing"))
 	{
 		ImGui_Utils::DrawBoolControl("Enabled", parameters.Raytracing, 100.f);
 		ImGui_Utils::DrawBoolControl("BVH", parameters.BVH, 100.f);
-		//if (parameters.RayTracing)
 		{
 			ImGui_Utils::DrawBoolControl("Accumulate", parameters.Accumulate, 100.f);
 			if (parameters.Accumulate)
@@ -695,7 +744,6 @@ void Editor::renderSettings()
 		ImGui::TreePop();
 	}
 	ImGui::NewLine();
-	ImGui::Separator();
 
 	ImGui::End();
 }

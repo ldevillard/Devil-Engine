@@ -87,6 +87,8 @@ private:
 	// render functions
 	void renderTopBar();
 	void renderScene(unsigned int width, unsigned int height);
+	void renderToolbar();
+	void renderPlayButton();
 	void renderShadowMap();
 	void renderRayTracer();
 	void renderInspector();
