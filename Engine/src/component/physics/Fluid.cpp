@@ -57,6 +57,11 @@ void Fluid::Compute()
 	glBindVertexArray(0);
 }
 
+void Fluid::Update(float deltaTime)
+{
+	// TODO: implement fluid simulation logic here
+}
+
 Component* Fluid::Clone()
 {
 	Fluid* newFluid = new Fluid();

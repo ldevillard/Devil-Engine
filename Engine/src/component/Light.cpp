@@ -33,6 +33,11 @@ void Light::Compute()
 	}
 }
 
+void Light::Update(float deltaTime)
+{
+	// do nothing for now
+}
+
 Component* Light::Clone()
 {
 	Light* newLight = new Light(lightType, color);

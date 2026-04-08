@@ -95,6 +95,14 @@ bool Entity::ComputeOutline() const
     return true;
 }
 
+void Entity::Update(float deltaTime)
+{
+    for (Component* c : components) 
+    {
+        c->Update(deltaTime);
+    }
+}
+
 nlohmann::ordered_json Entity::Serialize() const
 {
     nlohmann::ordered_json json;

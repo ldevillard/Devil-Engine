@@ -40,6 +40,9 @@ struct EditorSettings
 	float DivergeStrength = 0.25f;
 	int MaxBounces = 1;
 	bool Accumulate = false;
+
+	// runtime logic
+	bool isPlaying = false;
 };
 
 // TODO: Think about split this class to not centralize all the logic here 
@@ -59,8 +62,10 @@ public:
 	FrameBuffer* GetOutlineBuffer(int idx) const;
 	const Entity* GetSelectedEntity() const;
 
+	// update
+	void Update(float deltaTime);
+
 	// rendering
-	void PreRender();
 	void RenderShadowMap(Shader* shader, Shader* quadShader);
 	void RenderFrame(Shader* shader, CubeMap* cubemap, AxisGrid* grid);
 	void RenderCamera(Shader* shader);

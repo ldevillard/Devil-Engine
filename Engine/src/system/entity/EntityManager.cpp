@@ -61,6 +61,14 @@ Entity* EntityManager::DuplicateEntity(Entity* entity)
 	return newEntity;
 }
 
+void EntityManager::UpdateEntities(float deltaTime) const
+{
+	for (Entity* e : entities)
+	{
+		e->Update(deltaTime);
+	}
+}	
+
 void EntityManager::ComputeEntities() const
 {
 	shader->Use();

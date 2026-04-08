@@ -35,6 +35,8 @@ public:
 	// return true if the outline is computed successfully
 	bool ComputeOutline() const;
 
+	void Update(float deltaTime);
+
 	// serialization
 	nlohmann::ordered_json Serialize() const;
 	void Deserialize(const nlohmann::ordered_json& json);

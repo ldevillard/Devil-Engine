@@ -38,8 +38,10 @@ public:
     const std::vector<Mesh>& GetMeshes() const;
 
     void Compute() override;
-    Component* Clone() override;
     void ComputeOutline(Shader* outlineShader);
+
+	void Update(float deltaTime) override;
+    Component* Clone() override;
 
     void SetMaterialFromName(std::string name);
     void SetEditorCollider(EditorCollider* cl) override;

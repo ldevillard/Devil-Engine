@@ -124,11 +124,14 @@ int main()
 	// initialize editor
 	Editor::Initialize(window);
 
+	// Used for testing purposes, create a fluid entity with a fluid component to test the fluid simulation
+	//Entity* FluidEntity = EntityManager::Get().CreateEntity("Fluid");
+	//FluidEntity->AddComponent<Fluid>();
+
 	// render loop
 	while (!glfwWindowShouldClose(window))
 	{
-		Editor::Get().PreRender();
-		Time::Update();
+		Editor::Get().Update(Time::DeltaTime);
 
 		EditorSettings settings = Editor::Get().GetSettings();
 
@@ -146,17 +149,27 @@ int main()
 		// we don't want to render the scene if we are loading entities
 		if (!EntityManager::Get().IsLoadingEntities())
 		{
+			if (settings.isPlaying)
+			{
+				EntityManager::Get().UpdateEntities(Time::DeltaTime);
+			}
+
 			// 3D rendering
 			Editor::Get().RenderShadowMap(&shadowMapShader, &depthQuadShader);
 			Editor::Get().RenderFrame(&shader, &cubemap, &grid);
 
 			// raytracing
-			if (settings.Raytracing)
+			if (settings.Raytracing) 
+			{
 				Raytracer::Get().Draw(cubemap);
+			}
 		}
 
 		// editor interface rendering
 		Editor::Get().RenderEditor();
+
+		// update time
+		Time::Update();
 
 		// swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		glfwSwapBuffers(window);

@@ -108,6 +108,11 @@ void Model::Compute()
     draw();
 }
 
+void Model::Update(float deltaTime)
+{
+    // do nothing for now
+}
+
 Component* Model::Clone()
 {
 	Model* model = new Model();

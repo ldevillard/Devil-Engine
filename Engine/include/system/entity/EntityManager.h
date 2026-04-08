@@ -23,6 +23,8 @@ public:
 	void DestroyEntity(Entity* entity);
 	Entity* DuplicateEntity(Entity* entity);
 
+	void UpdateEntities(float deltaTime) const;
+
 	void ComputeEntities() const;
 	bool ComputeSelectedEntity() const;
 	void DrawAllMeshes(Shader* shader) const;

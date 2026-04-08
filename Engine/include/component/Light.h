@@ -20,6 +20,8 @@ public:
 	Light(const LightType& type, const Color& color = Color::White);
 
 	void Compute() override;
+	void Update(float deltaTime) override;
+
 	Component* Clone() override;
 
 	const glm::vec3 GetDirection() const;

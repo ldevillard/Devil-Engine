@@ -136,15 +136,19 @@ const Entity* Editor::GetSelectedEntity() const
 
 #pragma endregion
 
-#pragma region Rendering
+#pragma region Update
 
-void Editor::PreRender()
+void Editor::Update(float deltaTime)
 {
 	if (parameters.OrbitMode)
-		editorCamera->RotateAround(glm::vec3(0, 0, 0), 0.25f * Time::DeltaTime);
+		editorCamera->RotateAround(glm::vec3(0, 0, 0), 0.25f * deltaTime);
 
 	editorCamera->ProcessMatrices();
 }
+
+#pragma endregion
+
+#pragma region Rendering
 
 // TODO: set this function in the camera class
 void Editor::RenderCamera(Shader* shader)
