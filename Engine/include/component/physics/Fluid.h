@@ -1,6 +1,7 @@
 #pragma once
 
 #include "component/Component.h"
+#include "component/Transform.h"
 #include "data/mesh/Mesh.h"
 #include "data/Material.h"
 
@@ -19,6 +20,11 @@ public:
 	void Deserialize(const nlohmann::ordered_json& json) override;
 
 	int ParticleCount = 100;
+	float ParticleRadius = 0.25f;
+
+	float FluidBoxWidth = 10;
+	float FluidBoxHeight = 10;
+	float FluidBoxDepth = 1;
 
 private:
 	// render data
@@ -26,9 +32,12 @@ private:
 	Material material = Material::Sapphire;
 	unsigned int instanceVBO = 0;
 
-	// init logic
-	std::vector<glm::vec3> instancePositions;
-	void computeParticlesPosition();
+	// fluid simulation data
+	Transform fluidBoxTransform;
+	std::vector<glm::mat4> instanceMatrices;
+
+	void computeParticleMatrices();
+	void updateFluidBoxTransform();
 };
 
 REGISTER_COMPONENT_TYPE(Fluid);

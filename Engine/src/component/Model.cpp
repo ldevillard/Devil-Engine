@@ -96,6 +96,9 @@ void Model::Compute()
 {
     shader->Use();
 
+	// disable instancing for regular model rendering
+    shader->SetBool("useInstancing", false);
+
     // binding material data
     shader->SetVec3("material.ambient", material.Ambient);
     shader->SetVec3("material.diffuse", material.Diffuse);

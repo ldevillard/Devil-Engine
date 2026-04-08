@@ -8,22 +8,32 @@
 Fluid::Fluid() : Component()
 {
 	sphereMesh = Model::PrimitivesModels[PrimitiveType::SpherePrimitive]->GetMeshes()[0];
+	fluidBoxTransform = Transform();
 
-	computeParticlesPosition();
+	computeParticleMatrices();
 
-	// create instance VBO
 	glGenBuffers(1, &instanceVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glBufferData(GL_ARRAY_BUFFER, instancePositions.size() * sizeof(glm::vec3), instancePositions.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, instanceMatrices.size() * sizeof(glm::mat4), instanceMatrices.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(sphereMesh.GetVAO());
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 
-	// instances position
+	std::size_t vec4Size = sizeof(glm::vec4);
 	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(vec4Size));
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * vec4Size));
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * vec4Size));
+
 	glVertexAttribDivisor(3, 1);
+	glVertexAttribDivisor(4, 1);
+	glVertexAttribDivisor(5, 1);
+	glVertexAttribDivisor(6, 1);
 
 	glBindVertexArray(0);
 }
@@ -36,24 +46,31 @@ Fluid::~Fluid()
 
 void Fluid::Compute()
 {
-	Gizmo::DrawWireCube(Color::Blue, *transform);
-	
-	// binding material data
+	updateFluidBoxTransform();
+	Gizmo::DrawWireCube(Color::Blue, fluidBoxTransform);
+
 	shader->Use();
+
+	// enable instancing in the shader
+	shader->SetBool("useInstancing", true);
+
+	// binding material data
 	shader->SetVec3("material.ambient", material.Ambient);
 	shader->SetVec3("material.diffuse", material.Diffuse);
 	shader->SetVec3("material.specular", material.Specular);
 	shader->SetFloat("material.shininess", material.Shininess);
 
-	// update instance VBO with new positions
-	computeParticlesPosition();
+	// TODO: compute particle matrices only if particle count has changed
+	computeParticleMatrices();
+
+	// update instance VBO with new matrices
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glBufferData(GL_ARRAY_BUFFER, instancePositions.size() * sizeof(glm::vec3), instancePositions.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, instanceMatrices.size() * sizeof(glm::mat4), instanceMatrices.data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// bind VAO then draw
 	glBindVertexArray(sphereMesh.GetVAO());
-	glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(sphereMesh.Indices.size()), GL_UNSIGNED_INT, 0, static_cast<GLsizei>(instancePositions.size()));
+	glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(sphereMesh.Indices.size()), GL_UNSIGNED_INT, 0, static_cast<GLsizei>(instanceMatrices.size()));
 	glBindVertexArray(0);
 }
 
@@ -86,26 +103,37 @@ void Fluid::Deserialize(const nlohmann::ordered_json& json)
 
 #pragma region Private Methods
 
-void Fluid::computeParticlesPosition()
+void Fluid::computeParticleMatrices()
 {
-	instancePositions.clear();
+	instanceMatrices.clear();
 
-	// grid dimension
-	int gridSize = static_cast<int>(std::cbrt(ParticleCount));
-	// particles spacing
-	float spacing = 2.0f;
-	float offset = (gridSize - 1) * spacing / 2.0f;
+	int particlesPerRow = static_cast<int>(std::ceil(std::sqrt(ParticleCount)));
+	int totalRows = static_cast<int>(std::ceil(static_cast<float>(ParticleCount) / particlesPerRow));
 
-	// compute default positions of particles in a fluid simulation
+	float spacing = ParticleRadius * 2;
+
+	float offsetX = (particlesPerRow - 1) * spacing / 2.0f;
+	float offsetY = (totalRows - 1) * spacing / 2.0f;
+
 	for (int i = 0; i < ParticleCount; ++i)
 	{
-		int x = i % gridSize;
-		int y = (i / gridSize) % gridSize;
-		int z = i / (gridSize * gridSize);
+		int x = i % particlesPerRow;
+		int y = i / particlesPerRow;
 
-		glm::vec3 position = glm::vec3(x * spacing - offset, y * spacing - offset, z * spacing - offset);
-		instancePositions.push_back(position);
+		glm::vec3 position = glm::vec3(x * spacing - offsetX, y * spacing - offsetY, 0.0f);
+
+		glm::mat4 matrix = glm::translate(glm::mat4(1.0f), position);
+		matrix = glm::scale(matrix, glm::vec3(ParticleRadius));
+
+		instanceMatrices.push_back(matrix);
 	}
+}
+
+void Fluid::updateFluidBoxTransform()
+{
+	fluidBoxTransform.Position = transform->Position;
+	fluidBoxTransform.Rotation = transform->Rotation;
+	fluidBoxTransform.Scale = glm::vec3(FluidBoxWidth, FluidBoxHeight, FluidBoxDepth);
 }
 
 #pragma endregion
