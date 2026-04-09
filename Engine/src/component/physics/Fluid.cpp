@@ -11,14 +11,14 @@ Fluid::Fluid() : Component()
 {
 	sphereMesh = Model::PrimitivesModels[PrimitiveType::SpherePrimitive]->GetMeshes()[0];
 	fluidBoxTransform = Transform();
-	particleVelocity = glm::vec2(0.0f, 0.0f);
+	particleVelocities = std::vector<glm::vec2>(ParticleCount, glm::vec2(0, 0));
 
 	initializeParticleMatrices();
 
 	onPlayModeStopListenerID = Editor::Get().OnPlayModeStop.AddListener([this]()
 		{
 			initializeParticleMatrices();
-			particleVelocity = glm::vec2(0.0f, 0.0f);
+			particleVelocities = std::vector<glm::vec2>(ParticleCount, glm::vec2(0, 0));
 		});
 
 	glGenBuffers(1, &instanceVBO);
@@ -64,6 +64,7 @@ void Fluid::Compute()
 	if (!Editor::Get().GetSettings().isPlaying)
 	{
 		initializeParticleMatrices();
+		particleVelocities = std::vector<glm::vec2>(ParticleCount, glm::vec2(0, 0));
 	}
 	
 	shader->Use();
@@ -93,16 +94,17 @@ void Fluid::Compute()
 
 void Fluid::Update(float deltaTime)
 {
-	applyGravity(deltaTime);
-	
-	for (glm::mat4& particle : instanceMatrices)
+	for (int i = 0; i < instanceMatrices.size(); i++)
 	{
+		glm::mat4& particle = instanceMatrices[i];
+		glm::vec2& particleVelocity = particleVelocities[i];
+
+		applyGravity(deltaTime, particleVelocity);
+
 		particle[3] += glm::vec4(particleVelocity.x * deltaTime, particleVelocity.y * deltaTime, 0.0f, 0.0f);
-
-		solveBoxCollision(particle);
+		
+		solveBoxCollision(particle, particleVelocity);
 	}
-
-	std::cout << particleVelocity.y << std::endl;
 }
 
 Component* Fluid::Clone()
@@ -129,12 +131,12 @@ void Fluid::Deserialize(const nlohmann::ordered_json& json)
 
 #pragma region Private Methods
 
-void Fluid::applyGravity(float deltaTime)
+void Fluid::applyGravity(float deltaTime, glm::vec2& particleVelocity)
 {
 	particleVelocity.y -= Physics::Gravity * deltaTime;
 }
 
-void Fluid::solveBoxCollision(glm::mat4& particle)
+void Fluid::solveBoxCollision(glm::mat4& particle, glm::vec2& particleVelocity)
 {
 	const glm::vec2 boxHalfExtents = glm::vec2(fluidBoxTransform.Scale.x, fluidBoxTransform.Scale.y) - glm::vec2(ParticleRadius);
 	const glm::vec2 boxCenter = glm::vec2(fluidBoxTransform.Position);

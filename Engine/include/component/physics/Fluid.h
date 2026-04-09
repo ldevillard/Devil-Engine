@@ -40,11 +40,11 @@ private:
 	Transform fluidBoxTransform;
 	std::vector<glm::mat4> instanceMatrices;
 	// TODO: Make an object for particles that will embed transform, velocity, and other properties
-	glm::vec2 particleVelocity;
+	std::vector<glm::vec2> particleVelocities;
 
 	// simulation
-	void applyGravity(float deltaTime);
-	void solveBoxCollision(glm::mat4& particle);
+	void applyGravity(float deltaTime, glm::vec2& particleVelocity);
+	void solveBoxCollision(glm::mat4& particle, glm::vec2& particleVelocity);
 
 	void initializeParticleMatrices();
 	void updateFluidBoxTransform();
