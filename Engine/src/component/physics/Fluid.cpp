@@ -136,27 +136,62 @@ void Fluid::applyGravity(float deltaTime)
 
 void Fluid::solveBoxCollision(glm::mat4& particle)
 {
-	const glm::vec2 halfBoundsSize = glm::vec2(fluidBoxTransform.Scale.x, fluidBoxTransform.Scale.y) - glm::vec2(ParticleRadius);
+	const glm::vec2 boxHalfExtents = glm::vec2(fluidBoxTransform.Scale.x, fluidBoxTransform.Scale.y) - glm::vec2(ParticleRadius);
+	const glm::vec2 boxCenter = glm::vec2(fluidBoxTransform.Position);
 
-	glm::vec3 position = glm::vec3(particle[3]);
-	const glm::vec2 center = glm::vec2(fluidBoxTransform.Position);
+	const float boxAngle = glm::radians(fluidBoxTransform.Rotation.z);
+	const float cosAngle = std::cos(boxAngle);
+	const float sinAngle = std::sin(boxAngle);
 
-	const glm::vec2 minBounds = center - halfBoundsSize;
-	const glm::vec2 maxBounds = center + halfBoundsSize;
+	// particle data in world space.
+	const glm::vec2 worldPosition = glm::vec2(particle[3]);
+	const glm::vec2 worldVelocity = particleVelocity;
 
-	if (position.x < minBounds.x || position.x > maxBounds.x)
+	// convert particle data from world space to box local space.
+	const glm::vec2 particleWorldOffset = worldPosition - boxCenter;
+
+	glm::vec2 localPosition =
 	{
-		position.x = glm::clamp(position.x, minBounds.x, maxBounds.x);
-		particleVelocity.x *= -1.0f;
+		particleWorldOffset.x * cosAngle + particleWorldOffset.y * sinAngle,
+		-particleWorldOffset.x * sinAngle + particleWorldOffset.y * cosAngle
+	};
+
+	glm::vec2 localVelocity =
+	{
+		worldVelocity.x * cosAngle + worldVelocity.y * sinAngle,
+		-worldVelocity.x * sinAngle + worldVelocity.y * cosAngle
+	};
+
+	const bool hasCollidedOnX = localPosition.x < -boxHalfExtents.x || localPosition.x > boxHalfExtents.x;
+	const bool hasCollidedOnY = localPosition.y < -boxHalfExtents.y || localPosition.y > boxHalfExtents.y;
+
+	localPosition = glm::clamp(localPosition, -boxHalfExtents, boxHalfExtents);
+
+	if (hasCollidedOnX)
+	{
+		localVelocity.x = -localVelocity.x;
 	}
 
-	if (position.y < minBounds.y || position.y > maxBounds.y)
+	if (hasCollidedOnY)
 	{
-		position.y = glm::clamp(position.y, minBounds.y, maxBounds.y);
-		particleVelocity.y *= -1.0f;
+		localVelocity.y = -localVelocity.y;
 	}
 
-	particle[3] = glm::vec4(position, 1.0f);
+	// convert corrected particle data back to world space.
+	const glm::vec2 correctedWorldOffset =
+	{
+		localPosition.x * cosAngle - localPosition.y * sinAngle,
+		localPosition.x * sinAngle + localPosition.y * cosAngle
+	};
+
+	const glm::vec2 correctedWorldVelocity =
+	{
+		localVelocity.x * cosAngle - localVelocity.y * sinAngle,
+		localVelocity.x * sinAngle + localVelocity.y * cosAngle
+	};
+
+	particleVelocity = correctedWorldVelocity;
+	particle[3] = glm::vec4(boxCenter + correctedWorldOffset, particle[3][2], 1.0f);
 }
 
 void Fluid::initializeParticleMatrices()
