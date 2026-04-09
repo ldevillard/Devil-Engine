@@ -68,6 +68,9 @@ void Fluid::Compute()
 	
 	shader->Use();
 
+	// disable entity transform
+	Transform().Compute(shader);
+
 	// enable instancing in the shader
 	shader->SetBool("useInstancing", true);
 
