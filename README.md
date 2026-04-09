@@ -15,7 +15,7 @@ My 3D Engine built with OpenGL, providing graphics rendering with raytracing and
 ## Planned Next Features 🚀
 
 - **Rendering**: Currently implementing GPU instancing for performances improvement.
-- **Physics**: Integrate physics simulation for realistic interactions.
+- **Physics**: Implement a SPH fluid simulation.
 
 ## Articles made to explain concepts of the project 💬
 
