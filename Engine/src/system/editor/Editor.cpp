@@ -138,6 +138,18 @@ const Entity* Editor::GetSelectedEntity() const
 
 #pragma region Update
 
+void Editor::StartPlayMode()
+{
+	parameters.isPlaying = true;
+	OnPlayModeStart.Broadcast();
+}
+
+void Editor::StopPlayMode()
+{
+	parameters.isPlaying = false;
+	OnPlayModeStop.Broadcast();
+}
+
 void Editor::Update(float deltaTime)
 {
 	if (parameters.OrbitMode)
@@ -571,7 +583,14 @@ void Editor::renderPlayButton()
 
 	if (ImGui::Button(parameters.isPlaying ? "STOP" : "PLAY", ImVec2(50, 30)))
 	{
-		parameters.isPlaying = !parameters.isPlaying;
+		if (parameters.isPlaying)
+		{
+			StopPlayMode();
+		}
+		else
+		{
+			StartPlayMode();
+		}
 	}
 
 	ImGui::PopStyleColor(3);

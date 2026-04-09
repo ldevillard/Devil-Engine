@@ -14,6 +14,7 @@
 #include "render/DepthBuffer.h"
 #include "render/FrameBuffer.h"
 #include "data/template/Singleton.h"
+#include "utils/Event.h"
 
 class AxisGrid;
 class CubeMap;
@@ -63,6 +64,10 @@ public:
 	const Entity* GetSelectedEntity() const;
 
 	// update
+	Event<> OnPlayModeStart;
+	Event<> OnPlayModeStop;
+	void StartPlayMode();
+	void StopPlayMode();
 	void Update(float deltaTime);
 
 	// rendering

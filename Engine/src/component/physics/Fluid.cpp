@@ -1,7 +1,9 @@
 ﻿#include "component/physics/Fluid.h"
 
 #include "component/Model.h"
+#include "system/editor/Editor.h"
 #include "system/editor/Gizmo.h"
+#include "physics/Physics.h"
 
 #pragma region Public Methods
 
@@ -10,7 +12,12 @@ Fluid::Fluid() : Component()
 	sphereMesh = Model::PrimitivesModels[PrimitiveType::SpherePrimitive]->GetMeshes()[0];
 	fluidBoxTransform = Transform();
 
-	computeParticleMatrices();
+	initializeParticleMatrices();
+
+	onPlayModeStartListenerID = Editor::Get().OnPlayModeStop.AddListener([this]()
+		{
+			initializeParticleMatrices();
+		});
 
 	glGenBuffers(1, &instanceVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
@@ -40,6 +47,8 @@ Fluid::Fluid() : Component()
 
 Fluid::~Fluid()
 {
+	Editor::Get().OnPlayModeStop.RemoveListener(onPlayModeStartListenerID);
+
 	// delete instance VBO
 	glDeleteBuffers(1, &instanceVBO);
 }
@@ -49,6 +58,12 @@ void Fluid::Compute()
 	updateFluidBoxTransform();
 	Gizmo::DrawWireCube(Color::Blue, fluidBoxTransform);
 
+	// update particle matrices from edited settings only if the simulation isn't running 
+	if (!Editor::Get().GetSettings().isPlaying)
+	{
+		initializeParticleMatrices();
+	}
+	
 	shader->Use();
 
 	// enable instancing in the shader
@@ -59,9 +74,6 @@ void Fluid::Compute()
 	shader->SetVec3("material.diffuse", material.Diffuse);
 	shader->SetVec3("material.specular", material.Specular);
 	shader->SetFloat("material.shininess", material.Shininess);
-
-	// TODO: compute particle matrices only if particle count has changed
-	computeParticleMatrices();
 
 	// update instance VBO with new matrices
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
@@ -77,6 +89,7 @@ void Fluid::Compute()
 void Fluid::Update(float deltaTime)
 {
 	// TODO: implement fluid simulation logic here
+	applyGravity(deltaTime);
 }
 
 Component* Fluid::Clone()
@@ -103,7 +116,15 @@ void Fluid::Deserialize(const nlohmann::ordered_json& json)
 
 #pragma region Private Methods
 
-void Fluid::computeParticleMatrices()
+void Fluid::applyGravity(float deltaTime)
+{
+	for (glm::mat4& matrix : instanceMatrices)
+	{
+		matrix = glm::translate(matrix, glm::vec3(0.0f, -Physics::Gravity * deltaTime, 0.0f));
+	}
+}
+
+void Fluid::initializeParticleMatrices()
 {
 	instanceMatrices.clear();
 

@@ -4,6 +4,7 @@
 #include "component/Transform.h"
 #include "data/mesh/Mesh.h"
 #include "data/Material.h"
+#include "utils/Event.h"
 
 class Fluid : public Component
 {
@@ -19,7 +20,7 @@ public:
 	nlohmann::ordered_json Serialize() const override;
 	void Deserialize(const nlohmann::ordered_json& json) override;
 
-	int ParticleCount = 100;
+	int ParticleCount = 1;
 	float ParticleRadius = 0.25f;
 
 	float FluidBoxWidth = 10;
@@ -27,6 +28,9 @@ public:
 	float FluidBoxDepth = 1;
 
 private:
+	// event listeners
+	Event<>::ListenerID onPlayModeStartListenerID;
+
 	// render data
 	Mesh sphereMesh;
 	Material material = Material::Sapphire;
@@ -36,7 +40,8 @@ private:
 	Transform fluidBoxTransform;
 	std::vector<glm::mat4> instanceMatrices;
 
-	void computeParticleMatrices();
+	void applyGravity(float deltaTime);
+	void initializeParticleMatrices();
 	void updateFluidBoxTransform();
 };
 
