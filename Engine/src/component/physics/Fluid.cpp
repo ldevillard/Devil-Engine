@@ -11,12 +11,14 @@ Fluid::Fluid() : Component()
 {
 	sphereMesh = Model::PrimitivesModels[PrimitiveType::SpherePrimitive]->GetMeshes()[0];
 	fluidBoxTransform = Transform();
+	particleVelocity = glm::vec2(0.0f, 0.0f);
 
 	initializeParticleMatrices();
 
-	onPlayModeStartListenerID = Editor::Get().OnPlayModeStop.AddListener([this]()
+	onPlayModeStopListenerID = Editor::Get().OnPlayModeStop.AddListener([this]()
 		{
 			initializeParticleMatrices();
+			particleVelocity = glm::vec2(0.0f, 0.0f);
 		});
 
 	glGenBuffers(1, &instanceVBO);
@@ -47,7 +49,7 @@ Fluid::Fluid() : Component()
 
 Fluid::~Fluid()
 {
-	Editor::Get().OnPlayModeStop.RemoveListener(onPlayModeStartListenerID);
+	Editor::Get().OnPlayModeStop.RemoveListener(onPlayModeStopListenerID);
 
 	// delete instance VBO
 	glDeleteBuffers(1, &instanceVBO);
@@ -88,8 +90,16 @@ void Fluid::Compute()
 
 void Fluid::Update(float deltaTime)
 {
-	// TODO: implement fluid simulation logic here
 	applyGravity(deltaTime);
+	
+	for (glm::mat4& particle : instanceMatrices)
+	{
+		particle[3] += glm::vec4(particleVelocity.x * deltaTime, particleVelocity.y * deltaTime, 0.0f, 0.0f);
+
+		solveBoxCollision(particle);
+	}
+
+	std::cout << particleVelocity.y << std::endl;
 }
 
 Component* Fluid::Clone()
@@ -118,10 +128,32 @@ void Fluid::Deserialize(const nlohmann::ordered_json& json)
 
 void Fluid::applyGravity(float deltaTime)
 {
-	for (glm::mat4& matrix : instanceMatrices)
+	particleVelocity.y -= Physics::Gravity * deltaTime;
+}
+
+void Fluid::solveBoxCollision(glm::mat4& particle)
+{
+	const glm::vec2 halfBoundsSize = glm::vec2(fluidBoxTransform.Scale.x, fluidBoxTransform.Scale.y) - glm::vec2(ParticleRadius);
+
+	glm::vec3 position = glm::vec3(particle[3]);
+	const glm::vec2 center = glm::vec2(fluidBoxTransform.Position);
+
+	const glm::vec2 minBounds = center - halfBoundsSize;
+	const glm::vec2 maxBounds = center + halfBoundsSize;
+
+	if (position.x < minBounds.x || position.x > maxBounds.x)
 	{
-		matrix = glm::translate(matrix, glm::vec3(0.0f, -Physics::Gravity * deltaTime, 0.0f));
+		position.x = glm::clamp(position.x, minBounds.x, maxBounds.x);
+		particleVelocity.x *= -1.0f;
 	}
+
+	if (position.y < minBounds.y || position.y > maxBounds.y)
+	{
+		position.y = glm::clamp(position.y, minBounds.y, maxBounds.y);
+		particleVelocity.y *= -1.0f;
+	}
+
+	particle[3] = glm::vec4(position, 1.0f);
 }
 
 void Fluid::initializeParticleMatrices()

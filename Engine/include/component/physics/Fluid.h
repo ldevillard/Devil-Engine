@@ -29,7 +29,7 @@ public:
 
 private:
 	// event listeners
-	Event<>::ListenerID onPlayModeStartListenerID;
+	Event<>::ListenerID onPlayModeStopListenerID;
 
 	// render data
 	Mesh sphereMesh;
@@ -39,8 +39,13 @@ private:
 	// fluid simulation data
 	Transform fluidBoxTransform;
 	std::vector<glm::mat4> instanceMatrices;
+	// TODO: Make an object for particles that will embed transform, velocity, and other properties
+	glm::vec2 particleVelocity;
 
+	// simulation
 	void applyGravity(float deltaTime);
+	void solveBoxCollision(glm::mat4& particle);
+
 	void initializeParticleMatrices();
 	void updateFluidBoxTransform();
 };
