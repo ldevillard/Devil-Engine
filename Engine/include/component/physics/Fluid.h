@@ -25,7 +25,7 @@ public:
 
 	int ParticleCount = 1;
 	float ParticleRadius = 0.25f;
-	float ParticleColorMaxSpeed = 10.0f;
+	float ParticleColorMaxSpeed = 15.0f;
 	
 	float FluidBoxWidth = 10;
 	float FluidBoxHeight = 10;

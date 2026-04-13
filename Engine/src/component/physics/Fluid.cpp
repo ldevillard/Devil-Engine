@@ -197,9 +197,12 @@ glm::vec3 Fluid::computeParticleColor(const Particle& particle) const
 	const float speed = glm::length(particle.Velocity);
 	const float maxSpeed = glm::max(ParticleColorMaxSpeed, 0.001f);
 	const float speedT = glm::clamp(speed / maxSpeed, 0.0f, 1.0f);
+	
 	const float hue = glm::mix(240.0f / 360.0f, 0.0f, speedT);
+	const float saturation = 0.65f;
+	const float value = 0.6f;
 
-	return Color::HSVToRGB(hue, 1.0f, 1.0f);
+	return Color::HSVToRGB(hue, saturation, value);
 }
 
 #pragma endregion
