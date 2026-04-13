@@ -98,6 +98,7 @@ void Model::Compute()
 
 	// disable instancing for regular model rendering
     shader->SetBool("useInstancing", false);
+    shader->SetBool("useInstanceColor", false);
 
     // binding material data
     shader->SetVec3("material.ambient", material.Ambient);

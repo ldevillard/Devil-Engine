@@ -1,6 +1,7 @@
 #include "component/physics/Fluid.h"
 
 #include "component/Model.h"
+#include "data/Color.h"
 #include "system/editor/Editor.h"
 #include "system/editor/Gizmo.h"
 
@@ -29,6 +30,14 @@ Fluid::Fluid() : Component()
 	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
 	glVertexAttribDivisor(3, 1);
 
+	glGenBuffers(1, &instanceColorVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceColorVBO);
+	glBufferData(GL_ARRAY_BUFFER, instanceColors.size() * sizeof(glm::vec3), instanceColors.data(), GL_DYNAMIC_DRAW);
+
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	glVertexAttribDivisor(4, 1);
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
@@ -37,6 +46,7 @@ Fluid::~Fluid()
 {
 	Editor::Get().OnPlayModeStop.RemoveListener(onPlayModeStopListenerID);
 	glDeleteBuffers(1, &instanceVBO);
+	glDeleteBuffers(1, &instanceColorVBO);
 }
 
 void Fluid::Compute()
@@ -54,6 +64,7 @@ void Fluid::Compute()
 	shader->Use();
 	Transform().Compute(shader);
 	shader->SetBool("useInstancing", true);
+	shader->SetBool("useInstanceColor", true);
 	shader->SetBool("textured", false);
 
 	shader->SetVec3("material.ambient", material.Ambient);
@@ -63,6 +74,8 @@ void Fluid::Compute()
 
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 	glBufferData(GL_ARRAY_BUFFER, instanceData.size() * sizeof(glm::vec4), instanceData.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceColorVBO);
+	glBufferData(GL_ARRAY_BUFFER, instanceColors.size() * sizeof(glm::vec3), instanceColors.data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(sphereMesh.GetVAO());
@@ -85,6 +98,7 @@ Component* Fluid::Clone()
 	newFluid->FluidBoxWidth = FluidBoxWidth;
 	newFluid->FluidBoxHeight = FluidBoxHeight;
 	newFluid->FluidBoxDepth = FluidBoxDepth;
+	newFluid->ParticleColorMaxSpeed = ParticleColorMaxSpeed;
 	newFluid->material = material;
 	newFluid->resetParticles();
 	
@@ -101,6 +115,7 @@ nlohmann::ordered_json Fluid::Serialize() const
 	json["fluidBoxWidth"] = FluidBoxWidth;
 	json["fluidBoxHeight"] = FluidBoxHeight;
 	json["fluidBoxDepth"] = FluidBoxDepth;
+	json["particleColorMaxSpeed"] = ParticleColorMaxSpeed;
 
 	return json;
 }
@@ -130,6 +145,11 @@ void Fluid::Deserialize(const nlohmann::ordered_json& json)
 	if (json.contains("fluidBoxDepth"))
 	{
 		FluidBoxDepth = json["fluidBoxDepth"];
+	}
+
+	if (json.contains("particleColorMaxSpeed"))
+	{
+		ParticleColorMaxSpeed = json["particleColorMaxSpeed"];
 	}
 
 	resetParticles();
@@ -162,11 +182,24 @@ void Fluid::updateInstanceData()
 
 	instanceData.clear();
 	instanceData.reserve(particles.size());
+	instanceColors.clear();
+	instanceColors.reserve(particles.size());
 
 	for (const Particle& particle : particles)
 	{
 		instanceData.emplace_back(particle.Position, ParticleRadius);
+		instanceColors.push_back(computeParticleColor(particle));
 	}
+}
+
+glm::vec3 Fluid::computeParticleColor(const Particle& particle) const
+{
+	const float speed = glm::length(particle.Velocity);
+	const float maxSpeed = glm::max(ParticleColorMaxSpeed, 0.001f);
+	const float speedT = glm::clamp(speed / maxSpeed, 0.0f, 1.0f);
+	const float hue = glm::mix(240.0f / 360.0f, 0.0f, speedT);
+
+	return Color::HSVToRGB(hue, 1.0f, 1.0f);
 }
 
 #pragma endregion

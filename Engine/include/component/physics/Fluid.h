@@ -25,7 +25,8 @@ public:
 
 	int ParticleCount = 1;
 	float ParticleRadius = 0.25f;
-
+	float ParticleColorMaxSpeed = 10.0f;
+	
 	float FluidBoxWidth = 10;
 	float FluidBoxHeight = 10;
 	float FluidBoxDepth = 1;
@@ -38,7 +39,9 @@ private:
 	Mesh sphereMesh;
 	Material material = Material::Sapphire;
 	unsigned int instanceVBO = 0;
+	unsigned int instanceColorVBO = 0;
 	std::vector<glm::vec4> instanceData;
+	std::vector<glm::vec3> instanceColors;
 
 	// fluid simulation data
 	Transform fluidBoxTransform;
@@ -47,6 +50,7 @@ private:
 	void resetParticles();
 	void updateFluidBoxTransform();
 	void updateInstanceData();
+	glm::vec3 computeParticleColor(const Particle& particle) const;
 };
 
 REGISTER_COMPONENT_TYPE(Fluid);

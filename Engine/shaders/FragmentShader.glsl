@@ -6,6 +6,7 @@ in vec3 Normal;
 in vec3 FragPos;
 in vec2 TexCoords;
 in vec4 FragPosLightSpace;
+in vec3 InstanceColor;
 
 #define MAX_LIGHTS_COUNT 8
 
@@ -46,6 +47,7 @@ uniform vec3 viewPos;
 
 uniform bool wireframe;
 uniform bool textured;
+uniform bool useInstanceColor;
 
 float GetShadowFactor(vec4 fragPosLightSpace, vec3 lightDir, vec3 normal)
 {
@@ -82,16 +84,16 @@ float GetShadowFactor(vec4 fragPosLightSpace, vec3 lightDir, vec3 normal)
     return shadow;
 }
 
-vec3 ComputeDirectionalLighting(Light light)
+vec3 ComputeDirectionalLighting(Light light, vec3 ambientColor, vec3 surfaceColor)
 {
     // ambiant lighting
-    vec3 ambient = light.color * material.ambient;
+    vec3 ambient = light.color * ambientColor;
 
     // diffuse lighting
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(-light.direction);
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * light.color * material.diffuse;
+    vec3 diffuse = diff * light.color * surfaceColor;
 
     // specular lighting
     vec3 viewDir = normalize(viewPos - FragPos);
@@ -107,7 +109,7 @@ vec3 ComputeDirectionalLighting(Light light)
     return mix((ambient + (1.0 - shadow) * (diffuse + specular)) * light.intensity, vec3(0), lightAngleT);
 }
 
-vec3 ComputePointLighting(Light light)
+vec3 ComputePointLighting(Light light, vec3 ambientColor, vec3 surfaceColor)
 {
     float distance = length(light.position - FragPos);
     float radius = light.radius;
@@ -117,13 +119,13 @@ vec3 ComputePointLighting(Light light)
     float attenuation = 1.0 / (constant + linear * distance + quadratic * distance * distance);
 
     // ambiant lighting
-    vec3 ambient = light.color * material.ambient * attenuation;
+    vec3 ambient = light.color * ambientColor * attenuation;
 
     // diffuse lighting
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(light.position - FragPos);
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * light.color * material.diffuse * attenuation;
+    vec3 diffuse = diff * light.color * surfaceColor * attenuation;
 
     // specular lighting
     vec3 viewDir = normalize(viewPos - FragPos);
@@ -136,7 +138,7 @@ vec3 ComputePointLighting(Light light)
     return (ambient + diffuse + specular) * light.intensity;
 }
 
-vec3 ComputeSpotLighting(Light light)
+vec3 ComputeSpotLighting(Light light, vec3 ambientColor, vec3 surfaceColor)
 {
     vec3 lightDir = normalize(light.position - FragPos);
     float theta = dot(lightDir, normalize(-light.direction));
@@ -154,12 +156,12 @@ vec3 ComputeSpotLighting(Light light)
 
 
     // ambiant lighting
-    vec3 ambient = light.color * material.ambient * attenuation * intensity;
+    vec3 ambient = light.color * ambientColor * attenuation * intensity;
 
     // diffuse lighting
     vec3 norm = normalize(Normal);
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * light.color * material.diffuse * intensity * attenuation;
+    vec3 diffuse = diff * light.color * surfaceColor * intensity * attenuation;
 
     // specular lighting
     vec3 viewDir = normalize(viewPos - FragPos);
@@ -171,46 +173,59 @@ vec3 ComputeSpotLighting(Light light)
     return (ambient + diffuse + specular) * light.intensity;
 }
 
-vec3 ComputeLighting(Light light)
+vec3 ComputeLighting(Light light, vec3 ambientColor, vec3 surfaceColor)
 {
     if (light.type == 0)
     {
-        return ComputeDirectionalLighting(light);
+        return ComputeDirectionalLighting(light, ambientColor, surfaceColor);
 	}
     else if (light.type == 1)
     {
-		return ComputePointLighting(light);
+		return ComputePointLighting(light, ambientColor, surfaceColor);
 	}
     else if (light.type == 2)
     {
-		return ComputeSpotLighting(light);
+		return ComputeSpotLighting(light, ambientColor, surfaceColor);
     }
+
+    return vec3(0.0);
 }
 
 void main()
 {
+    vec3 surfaceColor = material.diffuse;
+    vec3 ambientColor = material.ambient;
+
+    if (useInstanceColor)
+    {
+        surfaceColor = InstanceColor;
+        ambientColor = InstanceColor;
+    }
+    else if (textured)
+    {
+        surfaceColor = texture(texture_diffuse1, TexCoords).rgb;
+        ambientColor = surfaceColor;
+    }
+
     if (!wireframe)
     {
         vec3 computedLight = vec3(0.0);
 
         for (int i = 0; i < lightsCount; i++)
         {
-            computedLight += ComputeLighting(lights[i]);
-        }
-
-        vec3 textureColor = vec3(1.0);
-
-        if (textured)
-        {
-            textureColor = texture(texture_diffuse1, TexCoords).rgb;
+            computedLight += ComputeLighting(lights[i], ambientColor, surfaceColor);
         }
         
-        FragColor = vec4(computedLight * textureColor, 1.0);
+        FragColor = vec4(computedLight, 1.0);
     }
     else if (textured)
     {
 		FragColor = texture(texture_diffuse1, TexCoords);
 	}
+    else if (useInstanceColor)
+    {
+        FragColor = vec4(InstanceColor, 1.0);
+    }
 	else
     {
         FragColor = vec4(material.diffuse, 1);

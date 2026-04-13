@@ -32,6 +32,7 @@ public:
 
 	// utility
 	static glm::vec3 HSLToRGB(float h, float s, float v);
+	static glm::vec3 HSVToRGB(float h, float s, float v);
 
 	// serialization
 	nlohmann::ordered_json Serialize() const;

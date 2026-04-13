@@ -102,6 +102,32 @@ glm::vec3 Color::HSLToRGB(float h, float s, float v)
     return glm::vec3(r, g, b);
 }
 
+// Hue, Saturation and Value
+glm::vec3 Color::HSVToRGB(float h, float s, float v)
+{
+    float r = 0.0f;
+    float g = 0.0f;
+    float b = 0.0f;
+
+    int i = static_cast<int>(h * 6.0f);
+    float f = h * 6.0f - i;
+    float p = v * (1.0f - s);
+    float q = v * (1.0f - f * s);
+    float t = v * (1.0f - (1.0f - f) * s);
+
+    switch (i % 6)
+    {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+
+    return glm::vec3(r, g, b);
+}
+
 nlohmann::ordered_json Color::Serialize() const
 {
 	return Serializer::Serialize(Value, Math::Vec3Format::RGB);
