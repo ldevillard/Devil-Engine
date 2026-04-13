@@ -1,10 +1,12 @@
 #pragma once
 
+#include <vector>
+
 #include "component/Component.h"
 #include "component/Transform.h"
-#include "data/mesh/Mesh.h"
 #include "data/Material.h"
-#include "data/physics/Particle.h"
+#include "data/mesh/Mesh.h"
+#include "physics/FluidSolver.h"
 #include "utils/Event.h"
 
 class Fluid : public Component
@@ -36,20 +38,15 @@ private:
 	Mesh sphereMesh;
 	Material material = Material::Sapphire;
 	unsigned int instanceVBO = 0;
+	std::vector<glm::vec4> instanceData;
 
 	// fluid simulation data
 	Transform fluidBoxTransform;
-	std::vector<Particle> particles;
-	std::vector<glm::mat4> instanceMatrices;
+	FluidSolver fluidSolver;
 
-	// simulation
-	void applyGravity(float deltaTime, Particle& particle);
-	void solveBoxCollision(Particle& particle);
-
-	void initializeParticleMatrices();
+	void resetParticles();
 	void updateFluidBoxTransform();
-	
-	void computeParticleMatrices();
+	void updateInstanceData();
 };
 
 REGISTER_COMPONENT_TYPE(Fluid);

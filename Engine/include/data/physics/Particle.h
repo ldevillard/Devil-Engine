@@ -2,13 +2,12 @@
 
 #include <maths/glm/glm.hpp>
 
-#include "component/Transform.h"
-
 class Particle
 {
 public:
 	Particle();
+	Particle(const glm::vec3& position, const glm::vec3& velocity);
 
-	Transform ParticleTransform;
-	glm::vec2 Velocity;
+	glm::vec3 Position;
+	glm::vec3 Velocity;
 };
