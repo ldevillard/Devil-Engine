@@ -4,6 +4,7 @@
 #include "component/Transform.h"
 #include "data/mesh/Mesh.h"
 #include "data/Material.h"
+#include "data/physics/Particle.h"
 #include "utils/Event.h"
 
 class Fluid : public Component
@@ -38,16 +39,17 @@ private:
 
 	// fluid simulation data
 	Transform fluidBoxTransform;
+	std::vector<Particle> particles;
 	std::vector<glm::mat4> instanceMatrices;
-	// TODO: Make an object for particles that will embed transform, velocity, and other properties
-	std::vector<glm::vec2> particleVelocities;
 
 	// simulation
-	void applyGravity(float deltaTime, glm::vec2& particleVelocity);
-	void solveBoxCollision(glm::mat4& particle, glm::vec2& particleVelocity);
+	void applyGravity(float deltaTime, Particle& particle);
+	void solveBoxCollision(Particle& particle);
 
 	void initializeParticleMatrices();
 	void updateFluidBoxTransform();
+	
+	void computeParticleMatrices();
 };
 
 REGISTER_COMPONENT_TYPE(Fluid);

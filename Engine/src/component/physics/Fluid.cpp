@@ -11,15 +11,16 @@ Fluid::Fluid() : Component()
 {
 	sphereMesh = Model::PrimitivesModels[PrimitiveType::SpherePrimitive]->GetMeshes()[0];
 	fluidBoxTransform = Transform();
-	particleVelocities = std::vector<glm::vec2>(ParticleCount, glm::vec2(0, 0));
+	particles = std::vector<Particle>(ParticleCount, Particle());
 
 	initializeParticleMatrices();
 
 	onPlayModeStopListenerID = Editor::Get().OnPlayModeStop.AddListener([this]()
 		{
 			initializeParticleMatrices();
-			particleVelocities = std::vector<glm::vec2>(ParticleCount, glm::vec2(0, 0));
 		});
+
+	computeParticleMatrices();
 
 	glGenBuffers(1, &instanceVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
@@ -64,9 +65,11 @@ void Fluid::Compute()
 	if (!Editor::Get().GetSettings().isPlaying)
 	{
 		initializeParticleMatrices();
-		particleVelocities = std::vector<glm::vec2>(ParticleCount, glm::vec2(0, 0));
 	}
 	
+	// update the instance matrices buffer
+	computeParticleMatrices();
+
 	shader->Use();
 
 	// disable entity transform
@@ -94,16 +97,13 @@ void Fluid::Compute()
 
 void Fluid::Update(float deltaTime)
 {
-	for (int i = 0; i < instanceMatrices.size(); i++)
+	for (Particle& particle : particles)
 	{
-		glm::mat4& particle = instanceMatrices[i];
-		glm::vec2& particleVelocity = particleVelocities[i];
+		applyGravity(deltaTime, particle);
 
-		applyGravity(deltaTime, particleVelocity);
-
-		particle[3] += glm::vec4(particleVelocity.x * deltaTime, particleVelocity.y * deltaTime, 0.0f, 0.0f);
+		particle.ParticleTransform.Position += glm::vec3(particle.Velocity * deltaTime, 0.0f);
 		
-		solveBoxCollision(particle, particleVelocity);
+		solveBoxCollision(particle);
 	}
 }
 
@@ -131,12 +131,12 @@ void Fluid::Deserialize(const nlohmann::ordered_json& json)
 
 #pragma region Private Methods
 
-void Fluid::applyGravity(float deltaTime, glm::vec2& particleVelocity)
+void Fluid::applyGravity(float deltaTime, Particle& particle)
 {
-	particleVelocity.y -= Physics::Gravity * deltaTime;
+	particle.Velocity.y -= Physics::Gravity * deltaTime;
 }
 
-void Fluid::solveBoxCollision(glm::mat4& particle, glm::vec2& particleVelocity)
+void Fluid::solveBoxCollision(Particle& particle)
 {
 	const glm::vec2 boxHalfExtents = glm::vec2(fluidBoxTransform.Scale.x, fluidBoxTransform.Scale.y) - glm::vec2(ParticleRadius);
 	const glm::vec2 boxCenter = glm::vec2(fluidBoxTransform.Position);
@@ -146,8 +146,8 @@ void Fluid::solveBoxCollision(glm::mat4& particle, glm::vec2& particleVelocity)
 	const float sinAngle = std::sin(boxAngle);
 
 	// particle data in world space.
-	const glm::vec2 worldPosition = glm::vec2(particle[3]);
-	const glm::vec2 worldVelocity = particleVelocity;
+	const glm::vec2 worldPosition = glm::vec2(particle.ParticleTransform.Position);
+	const glm::vec2 worldVelocity = particle.Velocity;
 
 	// convert particle data from world space to box local space.
 	const glm::vec2 particleWorldOffset = worldPosition - boxCenter;
@@ -192,13 +192,14 @@ void Fluid::solveBoxCollision(glm::mat4& particle, glm::vec2& particleVelocity)
 		localVelocity.x * sinAngle + localVelocity.y * cosAngle
 	};
 
-	particleVelocity = correctedWorldVelocity;
-	particle[3] = glm::vec4(boxCenter + correctedWorldOffset, particle[3][2], 1.0f);
+	particle.Velocity = correctedWorldVelocity;
+	particle.ParticleTransform.Position = glm::vec3(boxCenter + correctedWorldOffset, particle.ParticleTransform.Position.z);
 }
 
 void Fluid::initializeParticleMatrices()
 {
-	instanceMatrices.clear();
+	particles.clear();
+	particles.reserve(ParticleCount);
 
 	int particlesPerRow = static_cast<int>(std::ceil(std::sqrt(ParticleCount)));
 	int totalRows = static_cast<int>(std::ceil(static_cast<float>(ParticleCount) / particlesPerRow));
@@ -218,7 +219,8 @@ void Fluid::initializeParticleMatrices()
 		glm::mat4 matrix = glm::translate(glm::mat4(1.0f), position);
 		matrix = glm::scale(matrix, glm::vec3(ParticleRadius));
 
-		instanceMatrices.push_back(matrix);
+		particles.emplace_back();
+		particles.back().ParticleTransform = Transform(position, glm::vec3(), glm::vec3(ParticleRadius));
 	}
 }
 
@@ -228,5 +230,17 @@ void Fluid::updateFluidBoxTransform()
 	fluidBoxTransform.Rotation = transform->Rotation;
 	fluidBoxTransform.Scale = glm::vec3(FluidBoxWidth, FluidBoxHeight, FluidBoxDepth);
 }
+
+void Fluid::computeParticleMatrices()
+{
+	instanceMatrices.clear();
+	instanceMatrices.reserve(particles.size());
+
+	for (const Particle& particle : particles)
+	{
+		instanceMatrices.push_back(particle.ParticleTransform.GetTransformMatrix());
+	}
+}
+
 
 #pragma endregion
