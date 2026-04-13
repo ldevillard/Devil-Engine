@@ -213,7 +213,7 @@ void Fluid::initializeParticleMatrices()
 		int x = i % particlesPerRow;
 		int y = i / particlesPerRow;
 
-		glm::vec3 position = glm::vec3(x * spacing - offsetX, y * spacing - offsetY, 0.0f);
+		glm::vec3 position = glm::vec3(x * spacing - offsetX, y * spacing - offsetY, 0.0f) + fluidBoxTransform.Position;
 
 		glm::mat4 matrix = glm::translate(glm::mat4(1.0f), position);
 		matrix = glm::scale(matrix, glm::vec3(ParticleRadius));
