@@ -19,7 +19,8 @@ public:
 	virtual void Compute() = 0;
 	virtual Component* Clone() = 0;
 
-	virtual void Update(float deltaTime) = 0;
+	virtual void Update(float deltaTime);
+	virtual void FixedUpdate(float fixedDeltaTime);
 
 	// serialization
 	virtual nlohmann::ordered_json Serialize() const = 0;

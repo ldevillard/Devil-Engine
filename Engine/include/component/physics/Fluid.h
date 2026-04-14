@@ -16,7 +16,8 @@ public:
 	~Fluid();
 
 	void Compute() override;
-	void Update(float deltaTime) override;
+	void FixedUpdate(float fixedDeltaTime) override;
+	
 	Component* Clone() override;
 	
 	// serialization

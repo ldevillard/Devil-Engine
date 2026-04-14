@@ -103,6 +103,14 @@ void Entity::Update(float deltaTime)
     }
 }
 
+void Entity::FixedUpdate(float fixedDeltaTime)
+{
+    for (Component* c : components)
+    {
+        c->FixedUpdate(fixedDeltaTime);
+    }
+}
+
 nlohmann::ordered_json Entity::Serialize() const
 {
     nlohmann::ordered_json json;

@@ -69,6 +69,14 @@ void EntityManager::UpdateEntities(float deltaTime) const
 	}
 }	
 
+void EntityManager::FixedUpdateEntities(float fixedDeltaTime) const
+{
+	for (Entity* e : entities)
+	{
+		e->FixedUpdate(fixedDeltaTime);
+	}
+}
+
 void EntityManager::ComputeEntities() const
 {
 	shader->Use();

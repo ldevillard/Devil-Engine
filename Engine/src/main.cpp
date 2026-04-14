@@ -123,10 +123,9 @@ int main()
 	SceneManager::Initialize();
 	// initialize editor
 	Editor::Initialize(window);
-
-	// Used for testing purposes, create a fluid entity with a fluid component to test the fluid simulation
-	//Entity* FluidEntity = EntityManager::Get().CreateEntity("Fluid");
-	//FluidEntity->AddComponent<Fluid>();
+	// initialize timers
+	Time::Update();
+	Time::ResetFixedTime();
 
 	// render loop
 	while (!glfwWindowShouldClose(window))
@@ -151,7 +150,17 @@ int main()
 		{
 			if (settings.isPlaying)
 			{
+				const unsigned int fixedSteps = Time::ConsumeFixedSteps(Time::DeltaTime);
+				for (unsigned int i = 0; i < fixedSteps; ++i)
+				{
+					EntityManager::Get().FixedUpdateEntities(Time::FixedDeltaTime);
+				}
+
 				EntityManager::Get().UpdateEntities(Time::DeltaTime);
+			}
+			else
+			{
+				Time::ResetFixedTime();
 			}
 
 			// 3D rendering
@@ -163,6 +172,10 @@ int main()
 			{
 				Raytracer::Get().Draw(cubemap);
 			}
+		}
+		else
+		{
+			Time::ResetFixedTime();
 		}
 
 		// editor interface rendering

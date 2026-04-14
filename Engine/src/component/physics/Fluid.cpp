@@ -89,10 +89,10 @@ void Fluid::Compute()
 	glBindVertexArray(0);
 }
 
-void Fluid::Update(float deltaTime)
+void Fluid::FixedUpdate(float fixedDeltaTime)
 {
 	updateFluidBoxTransform();
-	fluidSolver.Update(deltaTime, ParticleRadius, fluidBoxTransform, BounceEnergyLoss);
+	fluidSolver.Update(fixedDeltaTime, ParticleRadius, fluidBoxTransform, BounceEnergyLoss);
 }
 
 Component* Fluid::Clone()

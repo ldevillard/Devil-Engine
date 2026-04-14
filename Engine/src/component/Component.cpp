@@ -27,4 +27,12 @@ void Component::SetShader(Shader* sh)
 	shader = sh;
 }
 
+void Component::Update(float deltaTime)
+{
+}
+
+void Component::FixedUpdate(float fixedDeltaTime)
+{
+}
+
 #pragma endregion

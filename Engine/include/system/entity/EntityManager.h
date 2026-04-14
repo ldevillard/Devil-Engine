@@ -24,6 +24,7 @@ public:
 	Entity* DuplicateEntity(Entity* entity);
 
 	void UpdateEntities(float deltaTime) const;
+	void FixedUpdateEntities(float fixedDeltaTime) const;
 
 	void ComputeEntities() const;
 	bool ComputeSelectedEntity() const;

@@ -36,6 +36,7 @@ public:
 	bool ComputeOutline() const;
 
 	void Update(float deltaTime);
+	void FixedUpdate(float fixedDeltaTime);
 
 	// serialization
 	nlohmann::ordered_json Serialize() const;

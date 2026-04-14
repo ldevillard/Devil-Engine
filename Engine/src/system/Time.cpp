@@ -6,9 +6,11 @@ namespace Time
 {
 	float CurrentTime = 0.0f;
 	float DeltaTime = 0.0f;
+	float FixedDeltaTime = 1.0f / 60.0f;
 
 	float lastFrame = 0.0f;
 	float currentFrame = 0.0f;
+	float fixedTimeAccumulator = 0.0f;
 
 	void Update()
 	{
@@ -16,6 +18,31 @@ namespace Time
 		currentFrame = CurrentTime;
 		DeltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
+	}
+
+	void ResetFixedTime()
+	{
+		fixedTimeAccumulator = 0.0f;
+	}
+
+	unsigned int ConsumeFixedSteps(float frameDeltaTime)
+	{
+		if (FixedDeltaTime <= 0.0f)
+		{
+			ResetFixedTime();
+			return 0;
+		}
+
+		fixedTimeAccumulator += frameDeltaTime;
+
+		unsigned int fixedSteps = 0;
+		while (fixedTimeAccumulator >= FixedDeltaTime)
+		{
+			fixedTimeAccumulator -= FixedDeltaTime;
+			fixedSteps++;
+		}
+
+		return fixedSteps;
 	}
 	
 	const float FrameRate()
