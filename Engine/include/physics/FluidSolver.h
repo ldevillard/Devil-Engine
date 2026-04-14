@@ -26,6 +26,7 @@ private:
 	
 	// simulation
 	void applyGravity(float deltaTime, Particle& particle) const;
+	glm::vec2 calculateBoundaryForce(float particleRadius, const Transform& fluidBoxTransform, const Particle& particle) const;
 	void solveBoxCollision(float particleRadius, const Transform& fluidBoxTransform, Particle& particle, float bounceEnergyLoss) const;
 	void updateDensities();
 	glm::vec2 calulatePressureForce(Particle& particle);
