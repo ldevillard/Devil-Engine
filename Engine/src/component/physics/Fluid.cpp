@@ -86,7 +86,7 @@ void Fluid::Compute()
 void Fluid::Update(float deltaTime)
 {
 	updateFluidBoxTransform();
-	fluidSolver.Update(deltaTime, ParticleRadius, fluidBoxTransform);
+	fluidSolver.Update(deltaTime, ParticleRadius, fluidBoxTransform, BounceEnergyLoss);
 }
 
 Component* Fluid::Clone()
@@ -99,6 +99,7 @@ Component* Fluid::Clone()
 	newFluid->FluidBoxHeight = FluidBoxHeight;
 	newFluid->FluidBoxDepth = FluidBoxDepth;
 	newFluid->ParticleColorMaxSpeed = ParticleColorMaxSpeed;
+	newFluid->BounceEnergyLoss = BounceEnergyLoss;
 	newFluid->material = material;
 	newFluid->resetParticles();
 	
@@ -116,6 +117,7 @@ nlohmann::ordered_json Fluid::Serialize() const
 	json["fluidBoxHeight"] = FluidBoxHeight;
 	json["fluidBoxDepth"] = FluidBoxDepth;
 	json["particleColorMaxSpeed"] = ParticleColorMaxSpeed;
+	json["bounceEnergyLoss"] = BounceEnergyLoss;
 
 	return json;
 }
@@ -150,6 +152,11 @@ void Fluid::Deserialize(const nlohmann::ordered_json& json)
 	if (json.contains("particleColorMaxSpeed"))
 	{
 		ParticleColorMaxSpeed = json["particleColorMaxSpeed"];
+	}
+
+	if (json.contains("bounceEnergyLoss"))
+	{
+		BounceEnergyLoss = json["bounceEnergyLoss"];
 	}
 
 	resetParticles();

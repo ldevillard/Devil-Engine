@@ -42,7 +42,7 @@ void FluidSolver::ResetParticles(int particleCount, float particleRadius, const 
 	}
 }
 
-void FluidSolver::Update(float deltaTime, float particleRadius, const Transform& fluidBoxTransform)
+void FluidSolver::Update(float deltaTime, float particleRadius, const Transform& fluidBoxTransform, float bounceEnergyLoss)
 {
 	for (Particle& particle : particles)
 	{
@@ -50,7 +50,7 @@ void FluidSolver::Update(float deltaTime, float particleRadius, const Transform&
 		
 		particle.Position += particle.Velocity * deltaTime;
 		
-		solveBoxCollision(particleRadius, fluidBoxTransform, particle);
+		solveBoxCollision(particleRadius, fluidBoxTransform, particle, bounceEnergyLoss);
 	}
 }
 
@@ -68,8 +68,9 @@ void FluidSolver::applyGravity(float deltaTime, Particle& particle) const
 	particle.Velocity.y -= Physics::Gravity * deltaTime;
 }
 
-void FluidSolver::solveBoxCollision(float particleRadius, const Transform& fluidBoxTransform, Particle& particle) const
+void FluidSolver::solveBoxCollision(float particleRadius, const Transform& fluidBoxTransform, Particle& particle, float bounceEnergyLoss) const
 {
+	const float bounceVelocityFactor = 1.0f - glm::clamp(bounceEnergyLoss, 0.0f, 1.0f);
 	const glm::vec2 boxHalfExtents = glm::max(glm::vec2(fluidBoxTransform.Scale) - glm::vec2(particleRadius), glm::vec2(0.0f));
 	const glm::vec2 boxCenter = glm::vec2(fluidBoxTransform.Position);
 	
@@ -93,12 +94,12 @@ void FluidSolver::solveBoxCollision(float particleRadius, const Transform& fluid
 
 	if (hasCollidedOnX)
 	{
-		localVelocity.x = -localVelocity.x;
+		localVelocity.x = -localVelocity.x * bounceVelocityFactor;
 	}
 
 	if (hasCollidedOnY)
 	{
-		localVelocity.y = -localVelocity.y;
+		localVelocity.y = -localVelocity.y * bounceVelocityFactor;
 	}
 
 	const glm::vec2 correctedWorldOffset(localPosition.x * cosAngle - localPosition.y * sinAngle, localPosition.x * sinAngle + localPosition.y * cosAngle);
