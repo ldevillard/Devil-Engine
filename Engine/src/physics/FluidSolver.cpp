@@ -11,7 +11,7 @@
 
 constexpr float MIN_PARTICLE_DENSITY = 0.001f;
 constexpr float MIN_PARTICLE_DISTANCE = 0.0001f;
-constexpr int SIMULATION_SUBSTEPS = 4;
+constexpr int SIMULATION_SUBSTEPS = 2;
 constexpr float VELOCITY_DAMPING = 0.998f;
 constexpr float BOUNDARY_FORCE_MULTIPLIER = 0.5f;
 
