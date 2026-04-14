@@ -1,6 +1,8 @@
 #include "physics/FluidSolver.h"
 
+#include <algorithm>
 #include <cmath>
+#include <execution>
 #include <random>
 
 #include "physics/Physics.h"
@@ -46,14 +48,18 @@ void FluidSolver::ResetParticles(int particleCount, float particleRadius, const 
 
 void FluidSolver::Update(float deltaTime, float particleRadius, const Transform& fluidBoxTransform, float bounceEnergyLoss)
 {
-	for (Particle& particle : particles)
-	{
-		applyGravity(deltaTime, particle);
-		
-		particle.Position += particle.Velocity * deltaTime;
-		
-		solveBoxCollision(particleRadius, fluidBoxTransform, particle, bounceEnergyLoss);
-	}
+	std::for_each(std::execution::par, particles.begin(), particles.end(),
+		[this, deltaTime, particleRadius, &fluidBoxTransform, bounceEnergyLoss](Particle& particle)
+		{
+			applyGravity(deltaTime, particle);
+		});
+	
+	std::for_each(std::execution::par, particles.begin(), particles.end(),
+		[this, deltaTime, particleRadius, &fluidBoxTransform, bounceEnergyLoss](Particle& particle)
+		{
+			particle.Position += particle.Velocity * deltaTime;
+			solveBoxCollision(particleRadius, fluidBoxTransform, particle, bounceEnergyLoss);
+		});
 }
 
 const std::vector<Particle>& FluidSolver::GetParticles() const

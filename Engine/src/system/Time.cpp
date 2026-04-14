@@ -4,6 +4,7 @@
 
 namespace Time
 {
+	// this to avoid the engine trying to catch up to much time and make it crash
 	constexpr float MaxFixedFrameDeltaTime = 0.25f;
 	constexpr unsigned int MaxFixedStepsPerFrame = 8;
 
