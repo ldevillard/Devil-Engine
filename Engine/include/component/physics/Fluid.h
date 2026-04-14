@@ -24,7 +24,7 @@ public:
 	nlohmann::ordered_json Serialize() const override;
 	void Deserialize(const nlohmann::ordered_json& json) override;
 
-	int ParticleCount = 100;
+	int ParticleCount = 500;
 	float ParticleRadius = 0.25f;
 	float SmoothingRadius = 0.75f;
 	float TargetDensity = 4.0f;
@@ -32,10 +32,10 @@ public:
 	
 	float ParticleColorMaxSpeed = 15.0f;
 	float BounceEnergyLoss = 0.75f;
-	bool UseRandomSpawnVelocity = true;
+	bool UseRandomSpawnVelocity = false;
 	
-	float FluidBoxWidth = 10;
-	float FluidBoxHeight = 10;
+	float FluidBoxWidth = 15;
+	float FluidBoxHeight = 7;
 	float FluidBoxDepth = 1;
 
 private:

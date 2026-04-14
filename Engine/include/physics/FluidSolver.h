@@ -37,7 +37,7 @@ private:
 	
 	std::vector<Particle> particles;
 
-	// TODO: variable directly in the inspector
+	// default values used until the component pushes its inspector settings
 	float smoothingRadius = 0.75f;
 	float targetDensity = 4.0f;
 	float pressureMultiplier = 500.0f;
