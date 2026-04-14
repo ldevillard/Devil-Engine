@@ -23,10 +23,11 @@ public:
 	nlohmann::ordered_json Serialize() const override;
 	void Deserialize(const nlohmann::ordered_json& json) override;
 
-	int ParticleCount = 1;
+	int ParticleCount = 100;
 	float ParticleRadius = 0.25f;
 	float ParticleColorMaxSpeed = 15.0f;
 	float BounceEnergyLoss = 0.15f;
+	bool UseRandomSpawnVelocity = true;
 	
 	float FluidBoxWidth = 10;
 	float FluidBoxHeight = 10;
@@ -34,6 +35,7 @@ public:
 
 private:
 	// event listeners
+	Event<>::ListenerID onPlayModeStartListenerID;
 	Event<>::ListenerID onPlayModeStopListenerID;
 
 	// render data

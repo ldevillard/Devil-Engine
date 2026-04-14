@@ -14,6 +14,11 @@ Fluid::Fluid() : Component()
 
 	resetParticles();
 
+	onPlayModeStartListenerID = Editor::Get().OnPlayModeStart.AddListener([this]()
+		{
+			resetParticles();
+		});
+
 	onPlayModeStopListenerID = Editor::Get().OnPlayModeStop.AddListener([this]()
 		{
 			resetParticles();
@@ -44,6 +49,7 @@ Fluid::Fluid() : Component()
 
 Fluid::~Fluid()
 {
+	Editor::Get().OnPlayModeStart.RemoveListener(onPlayModeStartListenerID);
 	Editor::Get().OnPlayModeStop.RemoveListener(onPlayModeStopListenerID);
 	glDeleteBuffers(1, &instanceVBO);
 	glDeleteBuffers(1, &instanceColorVBO);
@@ -100,6 +106,7 @@ Component* Fluid::Clone()
 	newFluid->FluidBoxDepth = FluidBoxDepth;
 	newFluid->ParticleColorMaxSpeed = ParticleColorMaxSpeed;
 	newFluid->BounceEnergyLoss = BounceEnergyLoss;
+	newFluid->UseRandomSpawnVelocity = UseRandomSpawnVelocity;
 	newFluid->material = material;
 	newFluid->resetParticles();
 	
@@ -118,6 +125,7 @@ nlohmann::ordered_json Fluid::Serialize() const
 	json["fluidBoxDepth"] = FluidBoxDepth;
 	json["particleColorMaxSpeed"] = ParticleColorMaxSpeed;
 	json["bounceEnergyLoss"] = BounceEnergyLoss;
+	json["useRandomSpawnVelocity"] = UseRandomSpawnVelocity;
 
 	return json;
 }
@@ -159,6 +167,11 @@ void Fluid::Deserialize(const nlohmann::ordered_json& json)
 		BounceEnergyLoss = json["bounceEnergyLoss"];
 	}
 
+	if (json.contains("useRandomSpawnVelocity"))
+	{
+		UseRandomSpawnVelocity = json["useRandomSpawnVelocity"];
+	}
+
 	resetParticles();
 }
 
@@ -173,7 +186,8 @@ void Fluid::resetParticles()
 		updateFluidBoxTransform();
 	}
 
-	fluidSolver.ResetParticles(ParticleCount, ParticleRadius, fluidBoxTransform);
+	const bool useRandomSpawnVelocity = UseRandomSpawnVelocity && Editor::Get().GetSettings().isPlaying;
+	fluidSolver.ResetParticles(ParticleCount, ParticleRadius, fluidBoxTransform, useRandomSpawnVelocity);
 }
 
 void Fluid::updateFluidBoxTransform()

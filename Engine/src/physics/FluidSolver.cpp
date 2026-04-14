@@ -1,12 +1,13 @@
 #include "physics/FluidSolver.h"
 
 #include <cmath>
+#include <random>
 
 #include "physics/Physics.h"
 
 #pragma region Public Methods
 
-void FluidSolver::ResetParticles(int particleCount, float particleRadius, const Transform& fluidBoxTransform)
+void FluidSolver::ResetParticles(int particleCount, float particleRadius, const Transform& fluidBoxTransform, bool useRandomSpawnVelocity)
 {
 	particles.clear();
 
@@ -37,8 +38,9 @@ void FluidSolver::ResetParticles(int particleCount, float particleRadius, const 
 		const glm::vec2 localPosition(x * spacing - offsetX, y * spacing - offsetY);
 		const glm::vec2 worldOffset(localPosition.x * cosAngle - localPosition.y * sinAngle, localPosition.x * sinAngle + localPosition.y * cosAngle);
 		const glm::vec3 position = glm::vec3(glm::vec2(fluidBoxTransform.Position) + worldOffset, fluidBoxTransform.Position.z);
+		const glm::vec3 velocity = generateSpawnVelocity(useRandomSpawnVelocity, cosAngle, sinAngle);
 		
-		particles.emplace_back(position, glm::vec3(0.0f));
+		particles.emplace_back(position, velocity);
 	}
 }
 
@@ -62,6 +64,27 @@ const std::vector<Particle>& FluidSolver::GetParticles() const
 #pragma endregion
 
 #pragma region Private Methods
+
+glm::vec3 FluidSolver::generateSpawnVelocity(bool useRandomSpawnVelocity, float cosAngle, float sinAngle)
+{
+	if (!useRandomSpawnVelocity)
+	{
+		return glm::vec3(0.0f);
+	}
+
+	static std::mt19937 randomGenerator(std::random_device{}());
+	std::uniform_real_distribution<float> angleDistribution(0.0f, glm::two_pi<float>());
+		
+	// hardcoded values for min and max random speed
+	std::uniform_real_distribution<float> speedDistribution(0, 20);
+
+	const float angle = angleDistribution(randomGenerator);
+	const float speed = speedDistribution(randomGenerator);
+	const glm::vec2 localVelocity(std::cos(angle) * speed, std::sin(angle) * speed);
+	const glm::vec2 worldVelocity(localVelocity.x * cosAngle - localVelocity.y * sinAngle, localVelocity.x * sinAngle + localVelocity.y * cosAngle);
+
+	return glm::vec3(worldVelocity, 0.0f);
+}
 
 void FluidSolver::applyGravity(float deltaTime, Particle& particle) const
 {

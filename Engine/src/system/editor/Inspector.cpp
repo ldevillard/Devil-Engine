@@ -160,14 +160,18 @@ void Inspector::inspectFluid(Fluid* fluid) const
 	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Fluid"))
 	{
-		ImGui_Utils::DrawIntControl("Particle Count", fluid->ParticleCount, 100, 150.f);
-		ImGui_Utils::DrawFloatControl("Particle Radius", fluid->ParticleRadius, 0.25f, 150.f);
-		ImGui_Utils::SliderFloat("Bounce Energy Loss", fluid->BounceEnergyLoss, 0.0f, 1.0f, "%.2f", 150.f);
+		ImGui_Utils::DrawIntControl("Particle Count", fluid->ParticleCount, 100, 175.f);
+		ImGui_Utils::DrawFloatControl("Particle Radius", fluid->ParticleRadius, 0.25f, 175.f);
+		
+		ImGui::NewLine();
+		
+		ImGui_Utils::DrawBoolControl("Random Spawn Velocity", fluid->UseRandomSpawnVelocity, 175.f);
+		ImGui_Utils::SliderFloat("Bounce Energy Loss", fluid->BounceEnergyLoss, 0.0f, 1.0f, "%.2f", 175.f);
 
 		ImGui::NewLine();
 
-		ImGui_Utils::DrawFloatControl("Fluid Box Width", fluid->FluidBoxWidth, 10, 150.f);
-		ImGui_Utils::DrawFloatControl("Fluid Box Height", fluid->FluidBoxHeight, 10, 150.f);
+		ImGui_Utils::DrawFloatControl("Fluid Box Width", fluid->FluidBoxWidth, 10, 175.f);
+		ImGui_Utils::DrawFloatControl("Fluid Box Height", fluid->FluidBoxHeight, 10, 175.f);
 
 		ImGui::TreePop();
 	}
