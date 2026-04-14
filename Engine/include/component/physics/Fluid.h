@@ -26,8 +26,12 @@ public:
 
 	int ParticleCount = 100;
 	float ParticleRadius = 0.25f;
+	float SmoothingRadius = 0.75f;
+	float TargetDensity = 4.0f;
+	float PressureMultiplier = 500.0f;
+	
 	float ParticleColorMaxSpeed = 15.0f;
-	float BounceEnergyLoss = 0.15f;
+	float BounceEnergyLoss = 0.75f;
 	bool UseRandomSpawnVelocity = true;
 	
 	float FluidBoxWidth = 10;
@@ -52,6 +56,7 @@ private:
 	FluidSolver fluidSolver;
 
 	void resetParticles();
+	void syncSolverParameters();
 	void updateFluidBoxTransform();
 	void updateInstanceData();
 	glm::vec3 computeParticleColor(const Particle& particle) const;

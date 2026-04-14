@@ -11,6 +11,7 @@ Fluid::Fluid() : Component()
 {
 	sphereMesh = Model::PrimitivesModels[PrimitiveType::SpherePrimitive]->GetMeshes()[0];
 	fluidBoxTransform = Transform();
+	syncSolverParameters();
 
 	resetParticles();
 
@@ -92,6 +93,7 @@ void Fluid::Compute()
 void Fluid::FixedUpdate(float fixedDeltaTime)
 {
 	updateFluidBoxTransform();
+	syncSolverParameters();
 	fluidSolver.Update(fixedDeltaTime, ParticleRadius, fluidBoxTransform, BounceEnergyLoss);
 }
 
@@ -101,6 +103,9 @@ Component* Fluid::Clone()
 	
 	newFluid->ParticleCount = ParticleCount;
 	newFluid->ParticleRadius = ParticleRadius;
+	newFluid->SmoothingRadius = SmoothingRadius;
+	newFluid->TargetDensity = TargetDensity;
+	newFluid->PressureMultiplier = PressureMultiplier;
 	newFluid->FluidBoxWidth = FluidBoxWidth;
 	newFluid->FluidBoxHeight = FluidBoxHeight;
 	newFluid->FluidBoxDepth = FluidBoxDepth;
@@ -120,6 +125,9 @@ nlohmann::ordered_json Fluid::Serialize() const
 	json["type"] = "Fluid";
 	json["particleCount"] = ParticleCount;
 	json["particleRadius"] = ParticleRadius;
+	json["smoothingRadius"] = SmoothingRadius;
+	json["targetDensity"] = TargetDensity;
+	json["pressureMultiplier"] = PressureMultiplier;
 	json["fluidBoxWidth"] = FluidBoxWidth;
 	json["fluidBoxHeight"] = FluidBoxHeight;
 	json["fluidBoxDepth"] = FluidBoxDepth;
@@ -140,6 +148,21 @@ void Fluid::Deserialize(const nlohmann::ordered_json& json)
 	if (json.contains("particleRadius"))
 	{
 		ParticleRadius = json["particleRadius"];
+	}
+
+	if (json.contains("smoothingRadius"))
+	{
+		SmoothingRadius = json["smoothingRadius"];
+	}
+
+	if (json.contains("targetDensity"))
+	{
+		TargetDensity = json["targetDensity"];
+	}
+
+	if (json.contains("pressureMultiplier"))
+	{
+		PressureMultiplier = json["pressureMultiplier"];
 	}
 
 	if (json.contains("fluidBoxWidth"))
@@ -186,8 +209,17 @@ void Fluid::resetParticles()
 		updateFluidBoxTransform();
 	}
 
+	syncSolverParameters();
+
 	const bool useRandomSpawnVelocity = UseRandomSpawnVelocity && Editor::Get().GetSettings().isPlaying;
 	fluidSolver.ResetParticles(ParticleCount, ParticleRadius, fluidBoxTransform, useRandomSpawnVelocity);
+}
+
+void Fluid::syncSolverParameters()
+{
+	fluidSolver.SetSmoothingRadius(SmoothingRadius);
+	fluidSolver.SetTargetDensity(TargetDensity);
+	fluidSolver.SetPressureMultiplier(PressureMultiplier);
 }
 
 void Fluid::updateFluidBoxTransform()

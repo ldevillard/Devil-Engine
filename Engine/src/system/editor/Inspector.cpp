@@ -165,6 +165,12 @@ void Inspector::inspectFluid(Fluid* fluid) const
 		
 		ImGui::NewLine();
 		
+		ImGui_Utils::DrawFloatControl("Smoothing Radius", fluid->SmoothingRadius, 0.05f, 175.f);
+		ImGui_Utils::DrawFloatControl("Target Density", fluid->TargetDensity, 0.25f, 175.f);
+		ImGui_Utils::DrawFloatControl("Pressure Multiplier", fluid->PressureMultiplier, 10.0f, 175.f);
+		
+		ImGui::NewLine();
+		
 		ImGui_Utils::DrawBoolControl("Random Spawn Velocity", fluid->UseRandomSpawnVelocity, 175.f);
 		ImGui_Utils::SliderFloat("Bounce Energy Loss", fluid->BounceEnergyLoss, 0.0f, 1.0f, "%.2f", 175.f);
 

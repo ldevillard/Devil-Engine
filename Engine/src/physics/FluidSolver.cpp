@@ -3,8 +3,10 @@
 #include <algorithm>
 #include <cmath>
 #include <execution>
+#include <numbers>
 #include <random>
 
+#include "maths/Math.h"
 #include "physics/Physics.h"
 
 #pragma region Public Methods
@@ -49,9 +51,20 @@ void FluidSolver::ResetParticles(int particleCount, float particleRadius, const 
 void FluidSolver::Update(float deltaTime, float particleRadius, const Transform& fluidBoxTransform, float bounceEnergyLoss)
 {
 	std::for_each(std::execution::par, particles.begin(), particles.end(),
-		[this, deltaTime, particleRadius, &fluidBoxTransform, bounceEnergyLoss](Particle& particle)
+		[this, deltaTime](Particle& particle)
 		{
 			applyGravity(deltaTime, particle);
+			calculateDensity(particle);
+		});
+	
+	std::for_each(std::execution::par, particles.begin(), particles.end(),
+		[this, deltaTime](Particle& particle)
+		{
+			glm::vec2 pressureForce = calulatePressureForce(particle);
+			glm::vec2 pressureAcceleration = pressureForce / particle.Density;
+			
+			particle.Velocity.x += pressureAcceleration.x * deltaTime;
+			particle.Velocity.y += pressureAcceleration.y * deltaTime;
 		});
 	
 	std::for_each(std::execution::par, particles.begin(), particles.end(),
@@ -60,6 +73,21 @@ void FluidSolver::Update(float deltaTime, float particleRadius, const Transform&
 			particle.Position += particle.Velocity * deltaTime;
 			solveBoxCollision(particleRadius, fluidBoxTransform, particle, bounceEnergyLoss);
 		});
+}
+
+void FluidSolver::SetSmoothingRadius(float value)
+{
+	smoothingRadius = value;
+}
+
+void FluidSolver::SetTargetDensity(float value)
+{
+	targetDensity = value;
+}
+
+void FluidSolver::SetPressureMultiplier(float value)
+{
+	pressureMultiplier = value;
 }
 
 const std::vector<Particle>& FluidSolver::GetParticles() const
@@ -90,6 +118,15 @@ glm::vec3 FluidSolver::generateSpawnVelocity(bool useRandomSpawnVelocity, float 
 	const glm::vec2 worldVelocity(localVelocity.x * cosAngle - localVelocity.y * sinAngle, localVelocity.x * sinAngle + localVelocity.y * cosAngle);
 
 	return glm::vec3(worldVelocity, 0.0f);
+}
+
+glm::vec2 FluidSolver::getRandomDir()
+{
+	thread_local std::mt19937 randomGenerator(std::random_device{}());
+	std::uniform_real_distribution<float> angleDistribution(0.0f, glm::two_pi<float>());
+
+	const float angle = angleDistribution(randomGenerator);
+	return glm::vec2(std::cos(angle), std::sin(angle));
 }
 
 void FluidSolver::applyGravity(float deltaTime, Particle& particle) const
@@ -137,6 +174,96 @@ void FluidSolver::solveBoxCollision(float particleRadius, const Transform& fluid
 	particle.Position = glm::vec3(boxCenter + correctedWorldOffset, particle.Position.z);
 	particle.Velocity.x = correctedWorldVelocity.x;
 	particle.Velocity.y = correctedWorldVelocity.y;
+}
+
+void FluidSolver::updateDensities()
+{
+	//std::for_each(std::execution::par, particles.begin(), particles.end(),
+	//	[this](Particle& particle)
+	//	{
+	//		
+	//	});
+}
+
+glm::vec2 FluidSolver::calulatePressureForce(Particle& particle)
+{
+	glm::vec2 pressureForce = glm::vec2(0.0f, 0.0f);
+	
+	for (Particle& p : particles)
+	{
+		glm::vec2 offset = particle.Position - p.Position;
+		float distance = glm::length(offset);
+		glm::vec2 direction = distance == 0.0f ? getRandomDir() : offset / distance;
+		float slope = smoothingKernelDerivative(smoothingRadius, distance);
+		float density = p.Density;
+		
+		float sharedPressure = calculateSharedPressure(density, particle.Density);
+		pressureForce += -sharedPressure * direction * slope * particle.Mass / density;
+	
+		//pressureForce += -convertDensityToPressure(density) * direction * slope * particle.Mass / density;
+	}
+	
+	return pressureForce;
+}
+
+float FluidSolver::calculateSharedPressure(float densityA, float densityB)
+{
+	float pressureA = convertDensityToPressure(densityA);
+	float pressureB = convertDensityToPressure(densityB);
+	return (pressureA + pressureB) / 2.0f;
+}
+
+void FluidSolver::calculateDensity(Particle& particle)
+{
+	particle.Density = 0;
+	
+	for (Particle& p : particles)
+	{
+		float distance = glm::length(p.Position - particle.Position);
+		float influence = smoothingKernel(smoothingRadius, distance);
+		particle.Density += p.Mass * influence;
+	}
+}
+
+float FluidSolver::convertDensityToPressure(float density) const
+{
+	float densityError = density - targetDensity;
+	float pressure = densityError * pressureMultiplier;
+	return pressure;
+}
+
+float FluidSolver::smoothingKernel(float radius, float distance) const
+{
+	float volume = static_cast<float>(std::numbers::pi) * std::pow(radius, 8.0f) / 4.0f;
+	float value = std::max(0.0f, radius * radius - distance * distance);
+	return value * value * value / volume;
+	
+	//if (distance >= radius)
+	//{
+	//	return 0.0f;
+	//}
+	//
+	//float volume = (static_cast<float>(std::numbers::pi) * std::pow(radius, 4.0f)) / 6.0f;
+	//return (radius - distance) * (radius - distance) / volume;
+}
+
+float FluidSolver::smoothingKernelDerivative(float radius, float distance) const
+{
+	if (distance >= radius)
+	{
+		return 0.0f;
+	}
+	float f = radius * radius - distance * distance;
+	float scale = -24 / (static_cast<float>(std::numbers::pi) * std::pow(radius, 8.0f));
+	return scale * distance * f * f;
+	
+	//if (distance >= radius)
+	//{
+	//	return 0.0f;
+	//}
+	//
+	//float scale = 12 / (std::pow(radius, 4.0f) * static_cast<float>(std::numbers::pi));
+	//return (distance - radius) * scale;
 }
 
 #pragma endregion
