@@ -4,6 +4,9 @@
 
 namespace Time
 {
+	constexpr float MaxFixedFrameDeltaTime = 0.25f;
+	constexpr unsigned int MaxFixedStepsPerFrame = 8;
+
 	float CurrentTime = 0.0f;
 	float DeltaTime = 0.0f;
 	float FixedDeltaTime = 1.0f / 60.0f;
@@ -33,13 +36,27 @@ namespace Time
 			return 0;
 		}
 
+		if (frameDeltaTime < 0.0f)
+		{
+			frameDeltaTime = 0.0f;
+		}
+		else if (frameDeltaTime > MaxFixedFrameDeltaTime)
+		{
+			frameDeltaTime = MaxFixedFrameDeltaTime;
+		}
+
 		fixedTimeAccumulator += frameDeltaTime;
 
 		unsigned int fixedSteps = 0;
-		while (fixedTimeAccumulator >= FixedDeltaTime)
+		while (fixedTimeAccumulator >= FixedDeltaTime && fixedSteps < MaxFixedStepsPerFrame)
 		{
 			fixedTimeAccumulator -= FixedDeltaTime;
 			fixedSteps++;
+		}
+
+		if (fixedSteps == MaxFixedStepsPerFrame && fixedTimeAccumulator >= FixedDeltaTime)
+		{
+			fixedTimeAccumulator = 0.0f;
 		}
 
 		return fixedSteps;
