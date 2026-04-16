@@ -12,7 +12,6 @@
 constexpr float MIN_PARTICLE_DENSITY = 0.001f;
 constexpr float MIN_PARTICLE_DISTANCE = 0.0001f;
 constexpr int SIMULATION_SUBSTEPS = 3;
-constexpr float VELOCITY_DAMPING = 0.998f;
 constexpr float BOUNDARY_FORCE_MULTIPLIER = 0.5f;
 
 #pragma region Public Methods
@@ -78,10 +77,11 @@ void FluidSolver::Update(float deltaTime, const FluidSimulationSettings& setting
 				const glm::vec2 boundaryForce = calculateBoundaryForce(simulationSettings.ParticleRadius, fluidBoxTransform, particle);
 				const float safeDensity = glm::max(particle.Density, MIN_PARTICLE_DENSITY);
 				const glm::vec2 totalAcceleration = (pressureForce + boundaryForce) / safeDensity;
+				const float velocityDamping = glm::clamp(simulationSettings.VelocityDamping, 0.0f, 1.0f);
 
 				particle.Velocity.x += totalAcceleration.x * substepDeltaTime;
 				particle.Velocity.y += totalAcceleration.y * substepDeltaTime;
-				particle.Velocity *= VELOCITY_DAMPING;
+				particle.Velocity *= velocityDamping;
 			});
 
 		std::for_each(std::execution::par, particles.begin(), particles.end(),

@@ -16,6 +16,7 @@ struct FluidSimulationSettings
 	float TargetDensity = 4.0f;
 	float PressureMultiplier = 500.0f;
 	float GravityMultiplier = 1.0f;
+	float VelocityDamping = 0.998f;
 	float BounceEnergyLoss = 0.75f;
 	
 	bool UseRandomSpawnVelocity = false;
