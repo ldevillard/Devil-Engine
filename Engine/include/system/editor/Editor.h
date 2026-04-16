@@ -30,7 +30,7 @@ struct EditorSettings
 	
 	// gizmos
 	bool Gizmo = true;
-	bool Grid = true;
+	bool Grid = false;
 	bool BoundingBoxGizmo = false;
 	bool BVHGizmo = false;
 

@@ -33,8 +33,8 @@ private:
 	float calculateSharedPressure(float densityA, float densityB);
 	void calculateDensity(Particle& particle);
 	float convertDensityToPressure(float density) const;
-	float smoothingKernel(float radius, float distance) const;
-	float smoothingKernelDerivative(float radius, float distance) const;
+	float densityKernelPoly6(float radius, float distance) const;
+	float pressureKernelSpikyDerivative(float radius, float distance) const;
 	
 	std::vector<Particle> particles;
 

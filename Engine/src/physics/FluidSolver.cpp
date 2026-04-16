@@ -11,7 +11,7 @@
 
 constexpr float MIN_PARTICLE_DENSITY = 0.001f;
 constexpr float MIN_PARTICLE_DISTANCE = 0.0001f;
-constexpr int SIMULATION_SUBSTEPS = 2;
+constexpr int SIMULATION_SUBSTEPS = 3;
 constexpr float VELOCITY_DAMPING = 0.998f;
 constexpr float BOUNDARY_FORCE_MULTIPLIER = 0.5f;
 
@@ -241,18 +241,23 @@ glm::vec2 FluidSolver::calulatePressureForce(Particle& particle)
 {
 	glm::vec2 pressureForce = glm::vec2(0.0f, 0.0f);
 	
-	for (Particle& p : particles)
+	for (const Particle& p : particles)
 	{
+		if (&p == &particle)
+		{
+			continue;
+		}
+
 		const glm::vec2 offset = glm::vec2(particle.Position) - glm::vec2(p.Position);
 		float distance = glm::length(offset);
 		const glm::vec2 direction = distance <= MIN_PARTICLE_DISTANCE ? getRandomDir() : offset / distance;
 		distance = glm::max(distance, MIN_PARTICLE_DISTANCE);
 
-		const float slope = smoothingKernelDerivative(smoothingRadius, distance);
+		const float slope = pressureKernelSpikyDerivative(smoothingRadius, distance);
 		const float density = glm::max(p.Density, MIN_PARTICLE_DENSITY);
 		
 		const float sharedPressure = calculateSharedPressure(density, glm::max(particle.Density, MIN_PARTICLE_DENSITY));
-		pressureForce += -sharedPressure * direction * slope * particle.Mass / density;
+		pressureForce += -sharedPressure * direction * slope * p.Mass / density;
 	}
 	
 	return pressureForce;
@@ -269,10 +274,10 @@ void FluidSolver::calculateDensity(Particle& particle)
 {
 	particle.Density = 0;
 	
-	for (Particle& p : particles)
+	for (const Particle& p : particles)
 	{
 		const float distance = glm::length(glm::vec2(p.Position) - glm::vec2(particle.Position));
-		const float influence = smoothingKernel(smoothingRadius, distance);
+		const float influence = densityKernelPoly6(smoothingRadius, distance);
 		particle.Density += p.Mass * influence;
 	}
 }
@@ -284,38 +289,37 @@ float FluidSolver::convertDensityToPressure(float density) const
 	return pressure;
 }
 
-float FluidSolver::smoothingKernel(float radius, float distance) const
-{
-	float volume = static_cast<float>(std::numbers::pi) * std::pow(radius, 8.0f) / 4.0f;
-	float value = std::max(0.0f, radius * radius - distance * distance);
-	return value * value * value / volume;
-	
-	//if (distance >= radius)
-	//{
-	//	return 0.0f;
-	//}
-	//
-	//float volume = (static_cast<float>(std::numbers::pi) * std::pow(radius, 4.0f)) / 6.0f;
-	//return (radius - distance) * (radius - distance) / volume;
-}
-
-float FluidSolver::smoothingKernelDerivative(float radius, float distance) const
+float FluidSolver::densityKernelPoly6(float radius, float distance) const
 {
 	if (distance >= radius)
 	{
 		return 0.0f;
 	}
-	float f = radius * radius - distance * distance;
-	float scale = -24 / (static_cast<float>(std::numbers::pi) * std::pow(radius, 8.0f));
-	return scale * distance * f * f;
-	
-	//if (distance >= radius)
-	//{
-	//	return 0.0f;
-	//}
-	//
-	//float scale = 12 / (std::pow(radius, 4.0f) * static_cast<float>(std::numbers::pi));
-	//return (distance - radius) * scale;
+
+	// 2D poly6 kernel: smooth density estimate with compact support on [0, h].
+	const float radiusSquared = radius * radius;
+	const float difference = radiusSquared - distance * distance;
+	const float differenceCubed = difference * difference * difference;
+	const float radiusFourth = radiusSquared * radiusSquared;
+	const float radiusEighth = radiusFourth * radiusFourth;
+	const float scale = 4.0f / (static_cast<float>(std::numbers::pi) * radiusEighth);
+	return differenceCubed * scale;
+}
+
+float FluidSolver::pressureKernelSpikyDerivative(float radius, float distance) const
+{
+	if (distance >= radius)
+	{
+		return 0.0f;
+	}
+
+	// 2D spiky radial derivative: steeper near the center, better for pressure.
+	const float radiusDifference = radius - distance;
+	const float radiusDifferenceSquared = radiusDifference * radiusDifference;
+	const float radiusSquared = radius * radius;
+	const float radiusFifth = radiusSquared * radiusSquared * radius;
+	const float scale = -30.0f / (static_cast<float>(std::numbers::pi) * radiusFifth);
+	return radiusDifferenceSquared * scale;
 }
 
 #pragma endregion
