@@ -7,15 +7,23 @@
 #include "component/Transform.h"
 #include "data/physics/Particle.h"
 
+struct FluidSimulationSettings
+{
+	int ParticleCount = 1200;
+	float ParticleRadius = 0.25f;
+	float SmoothingRadius = 0.75f;
+	float TargetDensity = 4.0f;
+	float PressureMultiplier = 500.0f;
+	float GravityMultiplier = 1.0f;
+	float BounceEnergyLoss = 0.75f;
+	bool UseRandomSpawnVelocity = false;
+};
+
 class FluidSolver
 {
 public:
-	void ResetParticles(int particleCount, float particleRadius, const Transform& fluidBoxTransform, bool useRandomSpawnVelocity);
-	void Update(float deltaTime, float particleRadius, const Transform& fluidBoxTransform, float bounceEnergyLoss);
-	
-	void SetSmoothingRadius(float value);
-	void SetTargetDensity(float value);
-	void SetPressureMultiplier(float value);
+	void ResetParticles(const FluidSimulationSettings& settings, const Transform& fluidBoxTransform);
+	void Update(float deltaTime, const FluidSimulationSettings& settings, const Transform& fluidBoxTransform);
 
 	const std::vector<Particle>& GetParticles() const;
 
@@ -37,9 +45,5 @@ private:
 	float pressureKernelSpikyDerivative(float radius, float distance) const;
 	
 	std::vector<Particle> particles;
-
-	// default values used until the component pushes its inspector settings
-	float smoothingRadius = 0.75f;
-	float targetDensity = 4.0f;
-	float pressureMultiplier = 500.0f;
+	FluidSimulationSettings simulationSettings;
 };

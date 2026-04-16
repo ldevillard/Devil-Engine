@@ -24,15 +24,9 @@ public:
 	nlohmann::ordered_json Serialize() const override;
 	void Deserialize(const nlohmann::ordered_json& json) override;
 
-	int ParticleCount = 1200;
-	float ParticleRadius = 0.25f;
-	float SmoothingRadius = 0.75f;
-	float TargetDensity = 4.0f;
-	float PressureMultiplier = 500.0f;
+	FluidSimulationSettings SimulationSettings;
 	
 	float ParticleColorMaxSpeed = 15.0f;
-	float BounceEnergyLoss = 0.75f;
-	bool UseRandomSpawnVelocity = false;
 	
 	float FluidBoxWidth = 25;
 	float FluidBoxHeight = 10;
@@ -56,7 +50,6 @@ private:
 	FluidSolver fluidSolver;
 
 	void resetParticles();
-	void syncSolverParameters();
 	void updateFluidBoxTransform();
 	void updateInstanceData();
 	glm::vec3 computeParticleColor(const Particle& particle) const;

@@ -160,19 +160,22 @@ void Inspector::inspectFluid(Fluid* fluid) const
 	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 	if (ImGui::TreeNode("Fluid"))
 	{
-		ImGui_Utils::DrawIntControl("Particle Count", fluid->ParticleCount, 100, 175.f);
-		ImGui_Utils::DrawFloatControl("Particle Radius", fluid->ParticleRadius, 0.25f, 175.f);
+		FluidSimulationSettings& settings = fluid->SimulationSettings;
+
+		ImGui_Utils::DrawIntControl("Particle Count", settings.ParticleCount, 100, 175.f);
+		ImGui_Utils::DrawFloatControl("Particle Radius", settings.ParticleRadius, 0.25f, 175.f);
 		
 		ImGui::NewLine();
 		
-		ImGui_Utils::DrawFloatControl("Smoothing Radius", fluid->SmoothingRadius, 0.05f, 175.f);
-		ImGui_Utils::DrawFloatControl("Target Density", fluid->TargetDensity, 0.25f, 175.f);
-		ImGui_Utils::DrawFloatControl("Pressure Multiplier", fluid->PressureMultiplier, 10.0f, 175.f);
+		ImGui_Utils::DrawFloatControl("Smoothing Radius", settings.SmoothingRadius, 0.75f, 175.f);
+		ImGui_Utils::DrawFloatControl("Target Density", settings.TargetDensity, 4.0f, 175.f);
+		ImGui_Utils::DrawFloatControl("Pressure Multiplier", settings.PressureMultiplier, 500.0f, 175.f);
+		ImGui_Utils::DrawFloatControl("Gravity Multiplier", settings.GravityMultiplier, 1.0f, 175.f);
 		
 		ImGui::NewLine();
 		
-		ImGui_Utils::DrawBoolControl("Random Spawn Velocity", fluid->UseRandomSpawnVelocity, 175.f);
-		ImGui_Utils::SliderFloat("Bounce Energy Loss", fluid->BounceEnergyLoss, 0.0f, 1.0f, "%.2f", 175.f);
+		ImGui_Utils::DrawBoolControl("Random Spawn Velocity", settings.UseRandomSpawnVelocity, 175.f);
+		ImGui_Utils::SliderFloat("Bounce Energy Loss", settings.BounceEnergyLoss, 0.0f, 1.0f, "%.2f", 175.f);
 
 		ImGui::NewLine();
 

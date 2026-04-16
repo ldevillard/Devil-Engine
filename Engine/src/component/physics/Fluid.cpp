@@ -11,7 +11,6 @@ Fluid::Fluid() : Component()
 {
 	sphereMesh = Model::PrimitivesModels[PrimitiveType::SpherePrimitive]->GetMeshes()[0];
 	fluidBoxTransform = Transform();
-	syncSolverParameters();
 
 	resetParticles();
 
@@ -93,25 +92,18 @@ void Fluid::Compute()
 void Fluid::FixedUpdate(float fixedDeltaTime)
 {
 	updateFluidBoxTransform();
-	syncSolverParameters();
-	fluidSolver.Update(fixedDeltaTime, ParticleRadius, fluidBoxTransform, BounceEnergyLoss);
+	fluidSolver.Update(fixedDeltaTime, SimulationSettings, fluidBoxTransform);
 }
 
 Component* Fluid::Clone()
 {
 	Fluid* newFluid = new Fluid();
 	
-	newFluid->ParticleCount = ParticleCount;
-	newFluid->ParticleRadius = ParticleRadius;
-	newFluid->SmoothingRadius = SmoothingRadius;
-	newFluid->TargetDensity = TargetDensity;
-	newFluid->PressureMultiplier = PressureMultiplier;
+	newFluid->SimulationSettings = SimulationSettings;
 	newFluid->FluidBoxWidth = FluidBoxWidth;
 	newFluid->FluidBoxHeight = FluidBoxHeight;
 	newFluid->FluidBoxDepth = FluidBoxDepth;
 	newFluid->ParticleColorMaxSpeed = ParticleColorMaxSpeed;
-	newFluid->BounceEnergyLoss = BounceEnergyLoss;
-	newFluid->UseRandomSpawnVelocity = UseRandomSpawnVelocity;
 	newFluid->material = material;
 	newFluid->resetParticles();
 	
@@ -123,48 +115,16 @@ nlohmann::ordered_json Fluid::Serialize() const
 	nlohmann::ordered_json json;
 
 	json["type"] = "Fluid";
-	json["particleCount"] = ParticleCount;
-	json["particleRadius"] = ParticleRadius;
-	json["smoothingRadius"] = SmoothingRadius;
-	json["targetDensity"] = TargetDensity;
-	json["pressureMultiplier"] = PressureMultiplier;
 	json["fluidBoxWidth"] = FluidBoxWidth;
 	json["fluidBoxHeight"] = FluidBoxHeight;
 	json["fluidBoxDepth"] = FluidBoxDepth;
 	json["particleColorMaxSpeed"] = ParticleColorMaxSpeed;
-	json["bounceEnergyLoss"] = BounceEnergyLoss;
-	json["useRandomSpawnVelocity"] = UseRandomSpawnVelocity;
 
 	return json;
 }
 
 void Fluid::Deserialize(const nlohmann::ordered_json& json)
 {
-	if (json.contains("particleCount"))
-	{
-		ParticleCount = json["particleCount"];
-	}
-
-	if (json.contains("particleRadius"))
-	{
-		ParticleRadius = json["particleRadius"];
-	}
-
-	if (json.contains("smoothingRadius"))
-	{
-		SmoothingRadius = json["smoothingRadius"];
-	}
-
-	if (json.contains("targetDensity"))
-	{
-		TargetDensity = json["targetDensity"];
-	}
-
-	if (json.contains("pressureMultiplier"))
-	{
-		PressureMultiplier = json["pressureMultiplier"];
-	}
-
 	if (json.contains("fluidBoxWidth"))
 	{
 		FluidBoxWidth = json["fluidBoxWidth"];
@@ -178,21 +138,6 @@ void Fluid::Deserialize(const nlohmann::ordered_json& json)
 	if (json.contains("fluidBoxDepth"))
 	{
 		FluidBoxDepth = json["fluidBoxDepth"];
-	}
-
-	if (json.contains("particleColorMaxSpeed"))
-	{
-		ParticleColorMaxSpeed = json["particleColorMaxSpeed"];
-	}
-
-	if (json.contains("bounceEnergyLoss"))
-	{
-		BounceEnergyLoss = json["bounceEnergyLoss"];
-	}
-
-	if (json.contains("useRandomSpawnVelocity"))
-	{
-		UseRandomSpawnVelocity = json["useRandomSpawnVelocity"];
 	}
 
 	resetParticles();
@@ -209,17 +154,9 @@ void Fluid::resetParticles()
 		updateFluidBoxTransform();
 	}
 
-	syncSolverParameters();
-
-	const bool useRandomSpawnVelocity = UseRandomSpawnVelocity && Editor::Get().GetSettings().isPlaying;
-	fluidSolver.ResetParticles(ParticleCount, ParticleRadius, fluidBoxTransform, useRandomSpawnVelocity);
-}
-
-void Fluid::syncSolverParameters()
-{
-	fluidSolver.SetSmoothingRadius(SmoothingRadius);
-	fluidSolver.SetTargetDensity(TargetDensity);
-	fluidSolver.SetPressureMultiplier(PressureMultiplier);
+	FluidSimulationSettings spawnSettings = SimulationSettings;
+	spawnSettings.UseRandomSpawnVelocity = SimulationSettings.UseRandomSpawnVelocity && Editor::Get().GetSettings().isPlaying;
+	fluidSolver.ResetParticles(spawnSettings, fluidBoxTransform);
 }
 
 void Fluid::updateFluidBoxTransform()
@@ -240,7 +177,7 @@ void Fluid::updateInstanceData()
 
 	for (const Particle& particle : particles)
 	{
-		instanceData.emplace_back(particle.Position, ParticleRadius);
+		instanceData.emplace_back(particle.Position, SimulationSettings.ParticleRadius);
 		instanceColors.push_back(computeParticleColor(particle));
 	}
 }

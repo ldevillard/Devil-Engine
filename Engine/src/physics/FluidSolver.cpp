@@ -15,24 +15,24 @@ constexpr int SIMULATION_SUBSTEPS = 3;
 constexpr float VELOCITY_DAMPING = 0.998f;
 constexpr float BOUNDARY_FORCE_MULTIPLIER = 0.5f;
 
-
 #pragma region Public Methods
 
-void FluidSolver::ResetParticles(int particleCount, float particleRadius, const Transform& fluidBoxTransform, bool useRandomSpawnVelocity)
+void FluidSolver::ResetParticles(const FluidSimulationSettings& settings, const Transform& fluidBoxTransform)
 {
+	simulationSettings = settings;
 	particles.clear();
 
-	if (particleCount <= 0)
+	if (simulationSettings.ParticleCount <= 0)
 	{
 		return;
 	}
 
-	particles.reserve(particleCount);
+	particles.reserve(simulationSettings.ParticleCount);
 
-	const int particlesPerRow = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(particleCount))));
-	const int totalRows = static_cast<int>(std::ceil(static_cast<float>(particleCount) / particlesPerRow));
+	const int particlesPerRow = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(simulationSettings.ParticleCount))));
+	const int totalRows = static_cast<int>(std::ceil(static_cast<float>(simulationSettings.ParticleCount) / particlesPerRow));
 
-	const float spacing = particleRadius * 2.0f;
+	const float spacing = simulationSettings.ParticleRadius * 2.0f;
 	
 	const float offsetX = (particlesPerRow - 1) * spacing * 0.5f;
 	const float offsetY = (totalRows - 1) * spacing * 0.5f;
@@ -41,7 +41,7 @@ void FluidSolver::ResetParticles(int particleCount, float particleRadius, const 
 	const float cosAngle = std::cos(boxAngle);
 	const float sinAngle = std::sin(boxAngle);
 
-	for (int i = 0; i < particleCount; ++i)
+	for (int i = 0; i < simulationSettings.ParticleCount; ++i)
 	{
 		const int x = i % particlesPerRow;
 		const int y = i / particlesPerRow;
@@ -49,19 +49,20 @@ void FluidSolver::ResetParticles(int particleCount, float particleRadius, const 
 		const glm::vec2 localPosition(x * spacing - offsetX, y * spacing - offsetY);
 		const glm::vec2 worldOffset(localPosition.x * cosAngle - localPosition.y * sinAngle, localPosition.x * sinAngle + localPosition.y * cosAngle);
 		const glm::vec3 position = glm::vec3(glm::vec2(fluidBoxTransform.Position) + worldOffset, fluidBoxTransform.Position.z);
-		const glm::vec3 velocity = generateSpawnVelocity(useRandomSpawnVelocity, cosAngle, sinAngle);
+		const glm::vec3 velocity = generateSpawnVelocity(simulationSettings.UseRandomSpawnVelocity, cosAngle, sinAngle);
 		
 		particles.emplace_back(position, velocity);
 	}
 }
 
-void FluidSolver::Update(float deltaTime, float particleRadius, const Transform& fluidBoxTransform, float bounceEnergyLoss)
+void FluidSolver::Update(float deltaTime, const FluidSimulationSettings& settings, const Transform& fluidBoxTransform)
 {
 	if (particles.empty() || deltaTime <= 0.0f)
 	{
 		return;
 	}
 
+	simulationSettings = settings;
 	const float substepDeltaTime = deltaTime / static_cast<float>(SIMULATION_SUBSTEPS);
 
 	for (int substep = 0; substep < SIMULATION_SUBSTEPS; substep++)
@@ -69,12 +70,12 @@ void FluidSolver::Update(float deltaTime, float particleRadius, const Transform&
 		updateDensities();
 
 		std::for_each(std::execution::par, particles.begin(), particles.end(),
-			[this, substepDeltaTime, particleRadius, &fluidBoxTransform](Particle& particle)
+			[this, substepDeltaTime, &fluidBoxTransform](Particle& particle)
 			{
 				applyGravity(substepDeltaTime, particle);
 
 				const glm::vec2 pressureForce = calulatePressureForce(particle);
-				const glm::vec2 boundaryForce = calculateBoundaryForce(particleRadius, fluidBoxTransform, particle);
+				const glm::vec2 boundaryForce = calculateBoundaryForce(simulationSettings.ParticleRadius, fluidBoxTransform, particle);
 				const float safeDensity = glm::max(particle.Density, MIN_PARTICLE_DENSITY);
 				const glm::vec2 totalAcceleration = (pressureForce + boundaryForce) / safeDensity;
 
@@ -84,27 +85,12 @@ void FluidSolver::Update(float deltaTime, float particleRadius, const Transform&
 			});
 
 		std::for_each(std::execution::par, particles.begin(), particles.end(),
-			[this, substepDeltaTime, particleRadius, &fluidBoxTransform, bounceEnergyLoss](Particle& particle)
+			[this, substepDeltaTime, &fluidBoxTransform](Particle& particle)
 			{
 				particle.Position += particle.Velocity * substepDeltaTime;
-				solveBoxCollision(particleRadius, fluidBoxTransform, particle, bounceEnergyLoss);
+				solveBoxCollision(simulationSettings.ParticleRadius, fluidBoxTransform, particle, simulationSettings.BounceEnergyLoss);
 			});
 	}
-}
-
-void FluidSolver::SetSmoothingRadius(float value)
-{
-	smoothingRadius = glm::max(value, MIN_PARTICLE_DISTANCE);
-}
-
-void FluidSolver::SetTargetDensity(float value)
-{
-	targetDensity = glm::max(value, MIN_PARTICLE_DENSITY);
-}
-
-void FluidSolver::SetPressureMultiplier(float value)
-{
-	pressureMultiplier = glm::max(value, 0.0f);
 }
 
 const std::vector<Particle>& FluidSolver::GetParticles() const
@@ -148,13 +134,14 @@ glm::vec2 FluidSolver::getRandomDir()
 
 void FluidSolver::applyGravity(float deltaTime, Particle& particle) const
 {
-	particle.Velocity.y -= Physics::Gravity * deltaTime;
+	const float gravityMultiplier = glm::max(simulationSettings.GravityMultiplier, 0.0f);
+	particle.Velocity.y -= Physics::Gravity * gravityMultiplier * deltaTime;
 }
 
 glm::vec2 FluidSolver::calculateBoundaryForce(float particleRadius, const Transform& fluidBoxTransform, const Particle& particle) const
 {
 	const glm::vec2 boxHalfExtents = glm::max(glm::vec2(fluidBoxTransform.Scale) - glm::vec2(particleRadius), glm::vec2(0.0f));
-	const float wallInfluenceDistance = glm::max(smoothingRadius, particleRadius);
+	const float wallInfluenceDistance = glm::max(glm::max(simulationSettings.SmoothingRadius, MIN_PARTICLE_DISTANCE), particleRadius);
 
 	if (boxHalfExtents.x <= 0.0f || boxHalfExtents.y <= 0.0f || wallInfluenceDistance <= 0.0f)
 	{
@@ -181,7 +168,7 @@ glm::vec2 FluidSolver::calculateBoundaryForce(float particleRadius, const Transf
 	localForce.y += addWallForce(localPosition.y + boxHalfExtents.y, 1.0f);
 	localForce.y += addWallForce(boxHalfExtents.y - localPosition.y, -1.0f);
 
-	localForce *= pressureMultiplier * BOUNDARY_FORCE_MULTIPLIER;
+	localForce *= glm::max(simulationSettings.PressureMultiplier, 0.0f) * BOUNDARY_FORCE_MULTIPLIER;
 
 	return glm::vec2(localForce.x * cosAngle - localForce.y * sinAngle, localForce.x * sinAngle + localForce.y * cosAngle);
 }
@@ -253,7 +240,7 @@ glm::vec2 FluidSolver::calulatePressureForce(Particle& particle)
 		const glm::vec2 direction = distance <= MIN_PARTICLE_DISTANCE ? getRandomDir() : offset / distance;
 		distance = glm::max(distance, MIN_PARTICLE_DISTANCE);
 
-		const float slope = pressureKernelSpikyDerivative(smoothingRadius, distance);
+		const float slope = pressureKernelSpikyDerivative(glm::max(simulationSettings.SmoothingRadius, MIN_PARTICLE_DISTANCE), distance);
 		const float density = glm::max(p.Density, MIN_PARTICLE_DENSITY);
 		
 		const float sharedPressure = calculateSharedPressure(density, glm::max(particle.Density, MIN_PARTICLE_DENSITY));
@@ -277,15 +264,15 @@ void FluidSolver::calculateDensity(Particle& particle)
 	for (const Particle& p : particles)
 	{
 		const float distance = glm::length(glm::vec2(p.Position) - glm::vec2(particle.Position));
-		const float influence = densityKernelPoly6(smoothingRadius, distance);
+		const float influence = densityKernelPoly6(glm::max(simulationSettings.SmoothingRadius, MIN_PARTICLE_DISTANCE), distance);
 		particle.Density += p.Mass * influence;
 	}
 }
 
 float FluidSolver::convertDensityToPressure(float density) const
 {
-	const float densityError = density - targetDensity;
-	const float pressure = glm::max(0.0f, densityError * pressureMultiplier);
+	const float densityError = density - glm::max(simulationSettings.TargetDensity, MIN_PARTICLE_DENSITY);
+	const float pressure = glm::max(0.0f, densityError * glm::max(simulationSettings.PressureMultiplier, 0.0f));
 	return pressure;
 }
 
