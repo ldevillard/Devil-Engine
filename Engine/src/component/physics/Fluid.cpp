@@ -70,7 +70,7 @@ void Fluid::Compute()
 	shader->Use();
 	Transform().Compute(shader);
 	shader->SetBool("useInstancing", true);
-	shader->SetBool("useInstanceColor", true);
+	shader->SetBool("useInstanceColor", SimulationSettings.VelocityColorView);
 	shader->SetBool("textured", false);
 
 	shader->SetVec3("material.ambient", material.Ambient);
@@ -178,7 +178,7 @@ void Fluid::updateInstanceData()
 	for (const Particle& particle : particles)
 	{
 		instanceData.emplace_back(particle.Position, SimulationSettings.ParticleRadius);
-		instanceColors.push_back(computeParticleColor(particle));
+		instanceColors.emplace_back(computeParticleColor(particle));
 	}
 }
 

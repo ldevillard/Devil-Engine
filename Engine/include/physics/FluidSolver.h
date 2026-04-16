@@ -11,12 +11,15 @@ struct FluidSimulationSettings
 {
 	int ParticleCount = 1200;
 	float ParticleRadius = 0.25f;
+	
 	float SmoothingRadius = 0.75f;
 	float TargetDensity = 4.0f;
 	float PressureMultiplier = 500.0f;
 	float GravityMultiplier = 1.0f;
 	float BounceEnergyLoss = 0.75f;
+	
 	bool UseRandomSpawnVelocity = false;
+	bool VelocityColorView = false;
 };
 
 class FluidSolver

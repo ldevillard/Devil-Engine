@@ -171,11 +171,12 @@ void Inspector::inspectFluid(Fluid* fluid) const
 		ImGui_Utils::DrawFloatControl("Target Density", settings.TargetDensity, 4.0f, 175.f);
 		ImGui_Utils::DrawFloatControl("Pressure Multiplier", settings.PressureMultiplier, 500.0f, 175.f);
 		ImGui_Utils::DrawFloatControl("Gravity Multiplier", settings.GravityMultiplier, 1.0f, 175.f);
+		ImGui_Utils::SliderFloat("Bounce Energy Loss", settings.BounceEnergyLoss, 0.0f, 1.0f, "%.2f", 175.f);
 		
 		ImGui::NewLine();
 		
 		ImGui_Utils::DrawBoolControl("Random Spawn Velocity", settings.UseRandomSpawnVelocity, 175.f);
-		ImGui_Utils::SliderFloat("Bounce Energy Loss", settings.BounceEnergyLoss, 0.0f, 1.0f, "%.2f", 175.f);
+		ImGui_Utils::DrawBoolControl("Velocity Color View", settings.VelocityColorView, 175.f);
 
 		ImGui::NewLine();
 
