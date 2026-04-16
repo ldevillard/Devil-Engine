@@ -39,7 +39,7 @@ private:
 
 	// render data
 	Mesh sphereMesh;
-	Material material = Material::Sapphire;
+	Material material = Material::Cyan;
 	unsigned int instanceVBO = 0;
 	unsigned int instanceColorVBO = 0;
 	std::vector<glm::vec4> instanceData;

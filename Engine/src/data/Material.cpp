@@ -18,6 +18,7 @@ const std::vector<const char*> Material::Names =
 	"Bronze", 
 	"Ruby", 
 	"Sapphire", 
+	"Cyan",
 	"Topaz", 
 	"Prune",
 };
@@ -42,6 +43,7 @@ const Material& Material::GetMaterialFromName(const std::string& name)
 		{"Bronze", &Material::Bronze},
 		{"Ruby", &Material::Ruby},
 		{"Sapphire", &Material::Sapphire},
+		{"Cyan", &Material::Cyan},
 		{"Topaz", &Material::Topaz},
 		{"Prune", &Material::Prune}
 	};
@@ -114,6 +116,12 @@ const Material Material::Sapphire(glm::vec3(0.01175f, 0.01175f, 0.1745f), // Amb
 	glm::vec3(0.626959f, 0.626959f, 0.727811f), // Specular
 	0.6f, // Shininess
 	"Sapphire"); // Name
+
+const Material Material::Cyan(glm::vec3(0.0f, 0.1f, 0.12f), // Ambient
+	glm::vec3(0.0f, 0.7f, 0.8f), // Diffuse
+	glm::vec3(0.7f, 0.95f, 0.95f), // Specular
+	0.35f, // Shininess
+	"Cyan"); // Name
 
 const Material Material::Topaz(glm::vec3(0.2f, 0.2f, 0.2f), // Ambient
 	glm::vec3(0.8f, 0.8f, 0.8f), // Diffuse

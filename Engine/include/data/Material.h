@@ -24,6 +24,7 @@ public:
 	const static Material Bronze;
 	const static Material Ruby;
 	const static Material Sapphire;
+	const static Material Cyan;
 	const static Material Topaz;
 	const static Material Prune;
 
