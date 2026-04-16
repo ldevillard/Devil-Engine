@@ -108,7 +108,7 @@ namespace ImGui_Utils
 		ImGui::PopID();
 	}
 
-	void DrawFloatControl(const std::string& label, float& value, float resetValue, float columnWidth)
+	void DrawFloatControl(const std::string& label, float& value, float resetValue, float columnWidth, const std::string& format)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		auto boldFont = io.Fonts->Fonts[0];
@@ -137,7 +137,7 @@ namespace ImGui_Utils
 		ImGui::PopStyleColor(3);
 
 		ImGui::SameLine();
-		ImGui::DragFloat("##Float", &value, 0.1f, 0.0f, 0.0f, "%.2f");
+		ImGui::DragFloat("##Float", &value, 0.1f, 0.0f, 0.0f, format.c_str());
 
 		ImGui::PopItemWidth();
 

@@ -8,7 +8,7 @@
 namespace ImGui_Utils
 {
 	void DrawVec3Control(const std::string& label, glm::vec3& values, float resetValue = 0.0f, float columnWidth = 75.0f);
-	void DrawFloatControl(const std::string& label, float& value, float resetValue = 0.0f, float columnWidth = 75.0f);
+	void DrawFloatControl(const std::string& label, float& value, float resetValue = 0.0f, float columnWidth = 75.0f, const std::string& format = "%.2f");
 	void DrawIntControl(const std::string& label, int& value, int resetValue = 0, float columnWidth = 75.0f);
 	void DrawBoolControl(const std::string& label, bool& value, float columnWidth = 75.0f);
 	void DrawComboBoxControl(const std::string& label, int& selectedItem, const std::vector<const char*>& options, float columnWidth = 75.0f);
