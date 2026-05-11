@@ -6,12 +6,11 @@
 #include <numbers>
 #include <random>
 
-#include "maths/Math.h"
 #include "physics/Physics.h"
 
 constexpr float MIN_PARTICLE_DENSITY = 0.001f;
 constexpr float MIN_PARTICLE_DISTANCE = 0.0001f;
-constexpr int SIMULATION_SUBSTEPS = 3;
+constexpr int SIMULATION_SUBSTEPS = 4;
 constexpr float BOUNDARY_FORCE_MULTIPLIER = 0.5f;
 
 #pragma region Public Methods
@@ -52,6 +51,8 @@ void FluidSolver::ResetParticles(const FluidSimulationSettings& settings, const 
 		
 		particles.emplace_back(position, velocity);
 	}
+
+	rebuildSpatialGrid(fluidBoxTransform);
 }
 
 void FluidSolver::Update(float deltaTime, const FluidSimulationSettings& settings, const Transform& fluidBoxTransform)
@@ -66,6 +67,7 @@ void FluidSolver::Update(float deltaTime, const FluidSimulationSettings& setting
 
 	for (int substep = 0; substep < SIMULATION_SUBSTEPS; substep++)
 	{
+		rebuildSpatialGrid(fluidBoxTransform);
 		updateDensities();
 
 		std::for_each(std::execution::par, particles.begin(), particles.end(),
@@ -96,6 +98,11 @@ void FluidSolver::Update(float deltaTime, const FluidSimulationSettings& setting
 const std::vector<Particle>& FluidSolver::GetParticles() const
 {
 	return particles;
+}
+
+const SpatialGrid& FluidSolver::GetSpatialGrid() const
+{
+	return spatialGrid;
 }
 
 #pragma endregion
@@ -215,6 +222,60 @@ void FluidSolver::solveBoxCollision(float particleRadius, const Transform& fluid
 	particle.Velocity.y = correctedWorldVelocity.y;
 }
 
+void FluidSolver::rebuildSpatialGrid(const Transform& fluidBoxTransform)
+{
+	const glm::vec2 boxCenter = glm::vec2(fluidBoxTransform.Position);
+	const glm::vec2 boxHalfExtents = glm::max(glm::vec2(fluidBoxTransform.Scale), glm::vec2(0.0f));
+	
+	const float cellSize = glm::max(simulationSettings.SmoothingRadius, MIN_PARTICLE_DISTANCE);
+	
+	const float boxAngle = glm::radians(fluidBoxTransform.Rotation.z);
+	const float absCosAngle = std::abs(std::cos(boxAngle));
+	const float absSinAngle = std::abs(std::sin(boxAngle));
+
+	// The grid stays axis-aligned in world space, so a rotated box needs a world-space AABB
+	const glm::vec2 worldAabbHalfExtents(
+		absCosAngle * boxHalfExtents.x + absSinAngle * boxHalfExtents.y,
+		absSinAngle * boxHalfExtents.x + absCosAngle * boxHalfExtents.y);
+
+	spatialGrid.Origin = boxCenter - worldAabbHalfExtents;
+	spatialGrid.CellSize = cellSize;
+	
+	// Keep one extra cell so clamped positions on the max edge still fit in the grid
+	spatialGrid.Width = glm::max(1, static_cast<int>(std::floor((worldAabbHalfExtents.x * 2.0f) / cellSize)) + 1);
+	spatialGrid.Height = glm::max(1, static_cast<int>(std::floor((worldAabbHalfExtents.y * 2.0f) / cellSize)) + 1);
+
+	spatialGrid.Cells.assign(spatialGrid.Width * spatialGrid.Height, {});
+
+	const int particleCount = static_cast<int>(particles.size());
+
+	for (int particleIndex = 0; particleIndex < particleCount; particleIndex++)
+	{
+		// Each cell stores particle indices only, particle data stays in the main array
+		const int cellIndex = getCellIndex(getCellCoords(glm::vec2(particles[particleIndex].Position)));
+		spatialGrid.Cells[cellIndex].push_back(particleIndex);
+	}
+}
+
+glm::ivec2 FluidSolver::getCellCoords(const glm::vec2& position) const
+{
+	const glm::vec2 relativePosition = (position - spatialGrid.Origin) / spatialGrid.CellSize;
+
+	return glm::ivec2(
+		glm::clamp(static_cast<int>(std::floor(relativePosition.x)), 0, spatialGrid.Width - 1),
+		glm::clamp(static_cast<int>(std::floor(relativePosition.y)), 0, spatialGrid.Height - 1));
+}
+
+bool FluidSolver::isCellInBounds(const glm::ivec2& cellCoords) const
+{
+	return cellCoords.x >= 0 && cellCoords.x < spatialGrid.Width && cellCoords.y >= 0 && cellCoords.y < spatialGrid.Height;
+}
+
+int FluidSolver::getCellIndex(const glm::ivec2& cellCoords) const
+{
+	return cellCoords.y * spatialGrid.Width + cellCoords.x;
+}
+
 void FluidSolver::updateDensities()
 {
 	std::for_each(std::execution::par, particles.begin(), particles.end(),
@@ -227,26 +288,43 @@ void FluidSolver::updateDensities()
 glm::vec2 FluidSolver::calulatePressureForce(Particle& particle)
 {
 	glm::vec2 pressureForce = glm::vec2(0.0f, 0.0f);
-	
-	for (const Particle& p : particles)
+	const float smoothingRadius = glm::max(simulationSettings.SmoothingRadius, MIN_PARTICLE_DISTANCE);
+	const glm::ivec2 particleCell = getCellCoords(glm::vec2(particle.Position));
+
+	for (int offsetX = -1; offsetX <= 1; offsetX++)
 	{
-		if (&p == &particle)
+		for (int offsetY = -1; offsetY <= 1; offsetY++)
 		{
-			continue;
+			const glm::ivec2 neighborCell = particleCell + glm::ivec2(offsetX, offsetY);
+
+			if (!isCellInBounds(neighborCell))
+			{
+				continue;
+			}
+
+			for (int neighborIndex : spatialGrid.Cells[getCellIndex(neighborCell)])
+			{
+				const Particle& p = particles[neighborIndex];
+
+				if (&p == &particle)
+				{
+					continue;
+				}
+
+				const glm::vec2 offset = glm::vec2(particle.Position) - glm::vec2(p.Position);
+				float distance = glm::length(offset);
+				const glm::vec2 direction = distance <= MIN_PARTICLE_DISTANCE ? getRandomDir() : offset / distance;
+				distance = glm::max(distance, MIN_PARTICLE_DISTANCE);
+
+				const float slope = pressureKernelSpikyDerivative(smoothingRadius, distance);
+				const float density = glm::max(p.Density, MIN_PARTICLE_DENSITY);
+
+				const float sharedPressure = calculateSharedPressure(density, glm::max(particle.Density, MIN_PARTICLE_DENSITY));
+				pressureForce += -sharedPressure * direction * slope * p.Mass / density;
+			}
 		}
-
-		const glm::vec2 offset = glm::vec2(particle.Position) - glm::vec2(p.Position);
-		float distance = glm::length(offset);
-		const glm::vec2 direction = distance <= MIN_PARTICLE_DISTANCE ? getRandomDir() : offset / distance;
-		distance = glm::max(distance, MIN_PARTICLE_DISTANCE);
-
-		const float slope = pressureKernelSpikyDerivative(glm::max(simulationSettings.SmoothingRadius, MIN_PARTICLE_DISTANCE), distance);
-		const float density = glm::max(p.Density, MIN_PARTICLE_DENSITY);
-		
-		const float sharedPressure = calculateSharedPressure(density, glm::max(particle.Density, MIN_PARTICLE_DENSITY));
-		pressureForce += -sharedPressure * direction * slope * p.Mass / density;
 	}
-	
+
 	return pressureForce;
 }
 
@@ -260,12 +338,28 @@ float FluidSolver::calculateSharedPressure(float densityA, float densityB)
 void FluidSolver::calculateDensity(Particle& particle)
 {
 	particle.Density = 0;
-	
-	for (const Particle& p : particles)
+	const float smoothingRadius = glm::max(simulationSettings.SmoothingRadius, MIN_PARTICLE_DISTANCE);
+	const glm::ivec2 particleCell = getCellCoords(glm::vec2(particle.Position));
+
+	for (int offsetX = -1; offsetX <= 1; ++offsetX)
 	{
-		const float distance = glm::length(glm::vec2(p.Position) - glm::vec2(particle.Position));
-		const float influence = densityKernelPoly6(glm::max(simulationSettings.SmoothingRadius, MIN_PARTICLE_DISTANCE), distance);
-		particle.Density += p.Mass * influence;
+		for (int offsetY = -1; offsetY <= 1; ++offsetY)
+		{
+			const glm::ivec2 neighborCell = particleCell + glm::ivec2(offsetX, offsetY);
+
+			if (!isCellInBounds(neighborCell))
+			{
+				continue;
+			}
+
+			for (int neighborIndex : spatialGrid.Cells[getCellIndex(neighborCell)])
+			{
+				const Particle& p = particles[neighborIndex];
+				const float distance = glm::length(glm::vec2(p.Position) - glm::vec2(particle.Position));
+				const float influence = densityKernelPoly6(smoothingRadius, distance);
+				particle.Density += p.Mass * influence;
+			}
+		}
 	}
 }
 

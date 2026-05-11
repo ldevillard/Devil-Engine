@@ -58,12 +58,14 @@ Fluid::~Fluid()
 void Fluid::Compute()
 {
 	updateFluidBoxTransform();
-	Gizmo::DrawWireCube(Color::Blue, fluidBoxTransform);
 
 	if (!Editor::Get().GetSettings().isPlaying)
 	{
 		resetParticles();
 	}
+
+	Gizmo::DrawWireCube(Color::Blue, fluidBoxTransform);
+	drawSpatialGridGizmos();
 
 	updateInstanceData();
 
@@ -104,6 +106,7 @@ Component* Fluid::Clone()
 	newFluid->FluidBoxHeight = FluidBoxHeight;
 	newFluid->FluidBoxDepth = FluidBoxDepth;
 	newFluid->ParticleColorMaxSpeed = ParticleColorMaxSpeed;
+	newFluid->DebugSpatialGrid = DebugSpatialGrid;
 	newFluid->material = material;
 	newFluid->resetParticles();
 	
@@ -180,6 +183,50 @@ void Fluid::updateInstanceData()
 		instanceData.emplace_back(particle.Position, SimulationSettings.ParticleRadius);
 		instanceColors.emplace_back(computeParticleColor(particle));
 	}
+}
+
+void Fluid::drawSpatialGridGizmos() const
+{
+	if (!DebugSpatialGrid)
+	{
+		return;
+	}
+
+	const SpatialGrid& spatialGrid = fluidSolver.GetSpatialGrid();
+
+	if (spatialGrid.Width <= 0 || spatialGrid.Height <= 0 || spatialGrid.CellSize <= 0.0f)
+	{
+		return;
+	}
+
+	const int cellCount = spatialGrid.Width * spatialGrid.Height;
+	const glm::vec3 cellScale(spatialGrid.CellSize * 0.5f, spatialGrid.CellSize * 0.5f,glm::max(fluidBoxTransform.Scale.z, 0.05f));
+
+	std::vector<glm::mat4> occupiedCellMatrices;
+
+	occupiedCellMatrices.reserve(cellCount);
+
+	for (int cellY = 0; cellY < spatialGrid.Height; cellY++)
+	{
+		for (int cellX = 0; cellX < spatialGrid.Width; cellX++)
+		{
+			const int cellIndex = cellY * spatialGrid.Width + cellX;
+			
+			const glm::vec3 cellPosition(
+				spatialGrid.Origin.x + (static_cast<float>(cellX) + 0.5f) * spatialGrid.CellSize,
+				spatialGrid.Origin.y + (static_cast<float>(cellY) + 0.5f) * spatialGrid.CellSize,
+				fluidBoxTransform.Position.z);
+			
+			const glm::mat4 cellMatrix = Transform(cellPosition, glm::vec3(0.0f), cellScale).GetTransformMatrix();
+			
+			if (!spatialGrid.Cells[cellIndex].empty())
+			{
+				occupiedCellMatrices.push_back(cellMatrix);
+			}
+		}
+	}
+
+	Gizmo::DrawWireCubeInstanced(Color::Cyan, occupiedCellMatrices);
 }
 
 glm::vec3 Fluid::computeParticleColor(const Particle& particle) const

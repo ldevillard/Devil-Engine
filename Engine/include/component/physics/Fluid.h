@@ -31,6 +31,7 @@ public:
 	float FluidBoxWidth = 25;
 	float FluidBoxHeight = 10;
 	float FluidBoxDepth = 1;
+	bool DebugSpatialGrid = false;
 
 private:
 	// event listeners
@@ -52,6 +53,7 @@ private:
 	void resetParticles();
 	void updateFluidBoxTransform();
 	void updateInstanceData();
+	void drawSpatialGridGizmos() const;
 	glm::vec3 computeParticleColor(const Particle& particle) const;
 };
 

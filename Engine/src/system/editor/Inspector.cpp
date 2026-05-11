@@ -178,6 +178,7 @@ void Inspector::inspectFluid(Fluid* fluid) const
 		
 		ImGui_Utils::DrawBoolControl("Random Spawn Velocity", settings.UseRandomSpawnVelocity, 175.f);
 		ImGui_Utils::DrawBoolControl("Velocity Color View", settings.VelocityColorView, 175.f);
+		ImGui_Utils::DrawBoolControl("Debug Spatial Grid", fluid->DebugSpatialGrid, 175.f);
 
 		ImGui::NewLine();
 

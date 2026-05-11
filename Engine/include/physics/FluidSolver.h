@@ -6,6 +6,7 @@
 
 #include "component/Transform.h"
 #include "data/physics/Particle.h"
+#include "data/physics/SpatialGrid.h"
 
 struct FluidSimulationSettings
 {
@@ -30,6 +31,7 @@ public:
 	void Update(float deltaTime, const FluidSimulationSettings& settings, const Transform& fluidBoxTransform);
 
 	const std::vector<Particle>& GetParticles() const;
+	const SpatialGrid& GetSpatialGrid() const;
 
 private:
 	// initialization
@@ -37,17 +39,29 @@ private:
 	glm::vec2 getRandomDir();
 	
 	// simulation
-	void applyGravity(float deltaTime, Particle& particle) const;
-	glm::vec2 calculateBoundaryForce(float particleRadius, const Transform& fluidBoxTransform, const Particle& particle) const;
-	void solveBoxCollision(float particleRadius, const Transform& fluidBoxTransform, Particle& particle, float bounceEnergyLoss) const;
 	void updateDensities();
+	void applyGravity(float deltaTime, Particle& particle) const;
+	void solveBoxCollision(float particleRadius, const Transform& fluidBoxTransform, Particle& particle, float bounceEnergyLoss) const;
+	
+	// computation
+	glm::vec2 calculateBoundaryForce(float particleRadius, const Transform& fluidBoxTransform, const Particle& particle) const;
 	glm::vec2 calulatePressureForce(Particle& particle);
 	float calculateSharedPressure(float densityA, float densityB);
 	void calculateDensity(Particle& particle);
 	float convertDensityToPressure(float density) const;
+	
+	// kernels
 	float densityKernelPoly6(float radius, float distance) const;
 	float pressureKernelSpikyDerivative(float radius, float distance) const;
 	
+	// spatial grid
+	void rebuildSpatialGrid(const Transform& fluidBoxTransform);
+	glm::ivec2 getCellCoords(const glm::vec2& position) const;
+	int getCellIndex(const glm::ivec2& cellCoords) const;
+	bool isCellInBounds(const glm::ivec2& cellCoords) const;
+	
 	std::vector<Particle> particles;
+	SpatialGrid spatialGrid;
+	
 	FluidSimulationSettings simulationSettings;
 };
