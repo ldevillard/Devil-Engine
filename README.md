@@ -18,8 +18,10 @@ My 3D Engine built with OpenGL, providing graphics rendering with raytracing and
 - **Rendering**: Currently implementing GPU instancing for performances improvement.
 - **Physics**: Improve performances of SPH fluid simulation.
 
-## Articles made to explain concepts of the project 💬
+## Articles made about the the project 💬
 
+- **Project's motivations**: [Project's motivations](https://ldevillard.github.io/Portfolio/projects/devil-engine)
+- **Fluid Simulation feature**: [Fluid Simulation feature](https://ldevillard.github.io/Portfolio/projects/smoothed-particle-hydrodynamics)
 - **Objects Mouse Picking**: [How to pick a 3D object using raycasting in C++](https://medium.com/@logandvllrd/how-to-pick-a-3d-object-using-raycasting-in-c-39112aed1987)
 
 ## Tech Stack ⚙️
