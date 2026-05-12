@@ -11,11 +11,12 @@ My 3D Engine built with OpenGL, providing graphics rendering with raytracing and
 - **Editor**: Gizmos, OX plane, ImGui integration and much more...⌨️
 - **Raytracing**: Non-realtime bvh raytracing for advanced rendering, with refraction, reflection and texture support.🌟
 - **Serialization**: Provide scene serialization to load and save scenes dynamically.✏️
+- **Physics**: Uniform grid based SPH fluid simulation. 🌊​
 
 ## Planned Next Features 🚀
 
 - **Rendering**: Currently implementing GPU instancing for performances improvement.
-- **Physics**: Implement a SPH fluid simulation.
+- **Physics**: Improve performances of SPH fluid simulation.
 
 ## Articles made to explain concepts of the project 💬
 
